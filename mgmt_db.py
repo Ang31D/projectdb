@@ -589,6 +589,106 @@ def do_action_query_db(db_conn, args):
 	#print(rows)
 	for row in rows:
 		print(row)
+def do_action_query_db_from_file(db_conn, args):
+	if not os.path.isfile(args.query_from_file):
+		print("[!] error: query failed - file not found '%s'" % args.query_from_file)
+		return
+
+	
+	query_template = None
+	query_parameter_list = []
+	with open(args.query_from_file) as f:
+		query_template = {}
+		query_template["Description"] = ''
+		query_template["Template"] = ''
+		query_template["Query"] = ''
+		query_template["Parameter_Positions"] = []
+		query_template["Parameter_Inputs"] = []
+		for line in f.readlines():
+			if line.lstrip().startswith("#"):
+				commented_line = line.lstrip()[1:].rstrip().lstrip()
+				if commented_line.lower().startswith("parameter:"):
+					param_value = commented_line.split(":")[1].lstrip()
+					query_template["Parameter_Positions"].append({"param": param_value})
+				else:
+					query_template["Description"] += commented_line
+				#print(commented_line)
+				continue
+			query_template["Template"] += line
+	if query_template is None:
+		print("[!] warning: query file failed - missing template content '%s'" % args.query_from_file)
+		return
+	
+	matching_parameter_inputs = True
+	query_template["Parameter_Inputs"] = args.query_parameters
+	if len(query_template["Parameter_Inputs"]) != len(query_template["Parameter_Positions"]):
+		print("[!] error: query failed; incorrect num of param fields: '%s'" % args.query_from_file)
+		matching_parameter_inputs = False
+		#return
+
+
+	if matching_parameter_inputs:
+			query = query_template["Template"]
+			if len(query_template["Parameter_Positions"]) > 0:
+					for i in range(len(query_template["Parameter_Inputs"])):
+						parameter_input = query_template["Parameter_Inputs"][i]
+						parameter_position = query_template["Parameter_Positions"][i]
+						query = query.replace(parameter_position["param"], parameter_input)
+			query_template["Query"] = query
+
+	if args.show_query_description:
+		print("Description: %s\n" % query_template["Description"])
+		
+		print("* Template")
+		print("-"*30)
+		print(query_template["Template"])
+		print("-"*30)
+		print("")
+
+		if matching_parameter_inputs:
+			if args.verbose_mode:
+				print("* Parameters")
+				print("-"*30)
+			if len(query_template["Parameter_Positions"]) > 0 and args.verbose_mode:
+				for i in range(len(query_template["Parameter_Inputs"])):
+					parameter_input = query_template["Parameter_Inputs"][i]
+					parameter_position = query_template["Parameter_Positions"][i]
+					print("%s = %s" % (parameter_position["param"], parameter_input))
+		elif len(args.query_parameters) > 0:
+			print("* Parameters")
+			print("-"*30)
+			print("[!] warning: incorrect num of param fields: '%s'" % args.query_from_file)
+
+			for parameter_position in query_template["Parameter_Positions"]:
+				print("query parameter: %s" % parameter_position["param"])
+
+			for parameter_input in query_template["Parameter_Inputs"]:
+				print("parameter input: %s" % parameter_input)
+			
+			print("[!] warning: query template not formatted")
+
+		if matching_parameter_inputs:
+				print("")
+				#print("-"*30)
+				print("* Query")
+				print("-"*30)
+				print(query_template["Query"])
+		return
+	
+	if not matching_parameter_inputs:
+		print("[!] error: query failed; incorrect num of param fields: '%s'" % args.query_from_file)
+		return
+	# ex. 222b8f27dbdfba8ddd559eeca27ea648
+
+	#print(query)
+	query = query_template["Query"]
+	rows = db.query_db(db_conn, query)
+	if rows is None:
+		print("[!] do_action_query_db(): status: failed - '%s'" % query)
+		return
+	#print(rows)
+	for row in rows:
+		print(row)
 
 def list_databases(db_conn, verbose_mode):
 	query = 'PRAGMA database_list'
@@ -772,6 +872,14 @@ def connect_db(db_file, args):
 	return db_conn
 
 def main(args):
+	if args.create_db is not None:
+		print("# create_db")
+		if not create_db(args):
+			return
+		# we can both create and define the database table
+		if args.define_db is None:
+			return
+
 	db_file = get_db_file(args)
 	db_conn = connect_db(db_file, args)
 	if db_conn is None:
@@ -780,13 +888,13 @@ def main(args):
 	"""
 		Database Management
 	"""
-	if args.create_db is not None:
-		print("# create_db")
-		if not create_db(args):
-			return
-		# we can both create and define the database table
-		if args.define_db is None:
-			return
+#	if args.create_db is not None:
+#		print("# create_db")
+#		if not create_db(args):
+#			return
+#		# we can both create and define the database table
+#		if args.define_db is None:
+#			return
 
 	if args.define_db is not None:
 		print("# do_define_db")
@@ -865,6 +973,11 @@ def main(args):
 	if args.query is not None:
 		print("# do_action_query_db")
 		do_action_query_db(db_conn, args)
+		db.close(db_conn)
+		return
+	if args.query_from_file is not None:
+		print("# do_action_query_db_from_file")
+		do_action_query_db_from_file(db_conn, args)
 		db.close(db_conn)
 		return
 
@@ -986,8 +1099,13 @@ if __name__ == '__main__':
 	parser.add_argument('--json', dest='out_json', action='store_true', help="Output as json")
 	parser.add_argument('-v', dest='verbose_mode', action='store_true', help="Verbose output")
 	parser.add_argument('-s', dest='silent_mode', action='store_true', help="Silent output")
-	parser.add_argument('--dry', dest='dry_mode', action='store_true', help="dry mode - do not commit to database")
+	parser.add_argument('--dry', dest='dry_mode', action='store_true', help="dry mode - do not commit to database" +
+		"\n\n")
 	parser.add_argument('-q', '--query', metavar='<query>', dest='query', help="Run query against the database")
+	parser.add_argument('-Q', metavar='<file>', dest='query_from_file', help="Run query from file against the database")
+	parser.add_argument('--qparam', metavar='<query_params>', dest='query_parameters', nargs='+', default=[], help="Parameters for the database query")
+	parser.add_argument('--qdesc', dest='show_query_description', action='store_true', help="Show query description")
+
 
 	args = parser.parse_args()
 	main(args)
