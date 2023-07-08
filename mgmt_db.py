@@ -589,102 +589,222 @@ def do_action_query_db(db_conn, args):
 	#print(rows)
 	for row in rows:
 		print(row)
-def do_action_query_db_from_file(db_conn, args):
-	if not os.path.isfile(args.query_from_file):
-		print("[!] error: query failed - file not found '%s'" % args.query_from_file)
-		return
 
-	
-	query_template = None
-	query_parameter_list = []
-	with open(args.query_from_file) as f:
-		query_template = {}
-		query_template["Description"] = ''
-		query_template["Template"] = ''
-		query_template["Query"] = ''
-		query_template["Parameter_Positions"] = []
-		query_template["Parameter_Inputs"] = []
+def parse_query_template_file(template_file, verbose_mode):
+	template = None
+	if not os.path.isfile(template_file):
+		return template
+
+	with open(template_file) as f:
+		template = {}
+		template["path"] = template_file
+		template["_raw"] = ''
+		template["Description"] = ''
+		template["Template"] = ''
+		template["Query"] = ''
+		template["Parameters"] = OrderedDict()
+		template["StatusOK"] = True
+		template["DebugInfo"] = {}
+		template["DebugInfo"]["Log"] = []
+
+		valid_properties = ["parameter"]
+		start_tag_found = False
+		end_tag_found = False
+
+		line_count = -1
+		previous_property = None
 		for line in f.readlines():
-			if line.lstrip().startswith("#"):
-				commented_line = line.lstrip()[1:].rstrip().lstrip()
-				if commented_line.lower().startswith("parameter:"):
-					param_value = commented_line.split(":")[1].lstrip()
-					query_template["Parameter_Positions"].append({"param": param_value})
-				else:
-					query_template["Description"] += commented_line
-				#print(commented_line)
+			template["_raw"] += line
+			line_count += 1
+			if line.strip() == "<#":
+				start_tag_found = True
 				continue
-			query_template["Template"] += line
-	if query_template is None:
-		print("[!] warning: query file failed - missing template content '%s'" % args.query_from_file)
-		return
-	
-	matching_parameter_inputs = True
-	query_template["Parameter_Inputs"] = args.query_parameters
-	if len(query_template["Parameter_Inputs"]) != len(query_template["Parameter_Positions"]):
-		print("[!] error: query failed; incorrect num of param fields: '%s'" % args.query_from_file)
-		matching_parameter_inputs = False
-		#return
+			if line.strip() == "#>":
+				end_tag_found = True
+				continue
 
-
-	if matching_parameter_inputs:
-			query = query_template["Template"]
-			if len(query_template["Parameter_Positions"]) > 0:
-					for i in range(len(query_template["Parameter_Inputs"])):
-						parameter_input = query_template["Parameter_Inputs"][i]
-						parameter_position = query_template["Parameter_Positions"][i]
-						query = query.replace(parameter_position["param"], parameter_input)
-			query_template["Query"] = query
-
-	if args.show_query_description:
-		print("Description: %s\n" % query_template["Description"])
-		
-		print("* Template")
-		print("-"*30)
-		print(query_template["Template"])
-		print("-"*30)
-		print("")
-
-		if matching_parameter_inputs:
-			if args.verbose_mode:
-				print("* Parameters")
-				print("-"*30)
-			if len(query_template["Parameter_Positions"]) > 0 and args.verbose_mode:
-				for i in range(len(query_template["Parameter_Inputs"])):
-					parameter_input = query_template["Parameter_Inputs"][i]
-					parameter_position = query_template["Parameter_Positions"][i]
-					print("%s = %s" % (parameter_position["param"], parameter_input))
-		elif len(args.query_parameters) > 0:
-			print("* Parameters")
-			print("-"*30)
-			print("[!] warning: incorrect num of param fields: '%s'" % args.query_from_file)
-
-			for parameter_position in query_template["Parameter_Positions"]:
-				print("query parameter: %s" % parameter_position["param"])
-
-			for parameter_input in query_template["Parameter_Inputs"]:
-				print("parameter input: %s" % parameter_input)
+			# line part of description
+			if not start_tag_found:
+				template["Description"] += line
+				continue
 			
-			print("[!] warning: query template not formatted")
+			# skip commented out and empty lines
+			if line.lstrip().startswith("#") or len(line.strip()) == 0:
+				continue
 
-		if matching_parameter_inputs:
-				print("")
-				#print("-"*30)
-				print("* Query")
-				print("-"*30)
-				print(query_template["Query"])
+			# line part of property section
+			if start_tag_found and not end_tag_found:
+				# check for property
+				if line.lstrip().startswith(".") and ":" in line:
+					property_type = line.lstrip().split(".")[1].split(":")[0].lower()
+					#if not property_type in valid_properties:
+					#	template["StatusOK"] = False
+					#	template["DebugInfo"]["Log"].append("[!] warning: unsupported property type '%s' in template '%s'" % (property_type, template_file))
+					#	continue
+					# parse property
+					if property_type == "parameter":
+						param_name = ':'.join(line.split(":")[1:]).strip()
+						param = OrderedDict()
+						param["name"] = param_name
+						param["description"] = ''
+						param["value"] = ''
+						template["Parameters"][param["name"]] = param
+						previous_property = param["name"]
+						continue
+				# add property description
+				elif previous_property is not None:
+					if previous_property in template["Parameters"]:
+						param = template["Parameters"][previous_property]
+						param["description"] = line.strip()
+						template["Parameters"][param["name"]] = param
+					else:
+						#print("[!] warning: parse query template failed; missing parameter: '%s'" % previous_property)
+						template["StatusOK"] = False
+						template["DebugInfo"]["Log"].append("[!] warning: parse query template failed; missing parameter '%s' in template '%s'" % (previous_property, template_file))
+			
+			# line part of query template
+			if end_tag_found:
+				template["Template"] += line
+		
+	# remove last trailing new line
+	template["_raw"] = template["_raw"].rstrip()
+	# remove any starting or trailing whitespace/new line
+	template["Description"] = template["Description"].strip()
+	# remove any trailing whitespace/new line
+	template["Template"] = template["Template"].rstrip()
+
+	return template
+def inspect_query_template(template, verbose_mode):
+	print(template["Description"])
+	print("")
+
+	parameters = list(template["Parameters"].keys())
+
+	if len(parameters) > 0:
+		print("* Parameters")
+		#print("-"*30)
+		for i in range(len(parameters)):
+			param_name = parameters[i]
+			param = template["Parameters"][param_name]
+			print("%s: %s" % (param["name"], param["description"]))
+
+	print("")
+	print("* Template")
+	print("-"*30)
+	print(template["Template"])
+	print("-"*30)
+
+	if not verbose_mode or verbose_mode:
+		# output any defined template parameter (positions)
+		print("")
+		if len(parameters) > 0:
+			print("* Parameter (position)")
+			print("-"*30)
+			for i in range(len(parameters)):
+				param_name = parameters[i]
+				param = template["Parameters"][param_name]
+				print("%s: %s" % (i, param["name"]))
+	if not verbose_mode:
 		return
 	
-	if not matching_parameter_inputs:
-		print("[!] error: query failed; incorrect num of param fields: '%s'" % args.query_from_file)
-		return
-	# ex. 222b8f27dbdfba8ddd559eeca27ea648
+	print("-"*30)
+	print("")
+	print("")
+		
+	print("[**** Formatted Template ****]")
+	print("")
 
-	#print(query)
-	query = query_template["Query"]
+	if template["Matching_Parameter_Inputs"]:
+		if len(parameters) > 0:
+			print("* Parameter (key/value pair)")
+			print("-"*30)
+			for i in range(len(parameters)):
+				param_name = parameters[i]
+				param = template["Parameters"][param_name]
+				print("%s = %s" % (param["name"], param["value"]))
+
+			print("")
+			print("* Query (formatted)")
+			print("-"*30)
+			print(template["Query"])
+			print("-"*30)
+	else:
+		# output defined template parameter (positions)
+		if len(parameters) > 0:
+			print("* Parameter (position)")
+			print("-"*30)
+			for i in range(len(parameters)):
+				param_name = parameters[i]
+				param = template["Parameters"][param_name]
+				print("%s: %s" % (i, param["name"]))
+		
+		# output any passed parameter value (positions)
+		print("")
+		print("* Input (position)")
+		print("-"*30)
+		inputs = template["Inputs"]
+		for i in range(len(inputs)):
+			parameter_input = inputs[i]
+			print("%s: %s" % (i, parameter_input))
+def out_query_template_debug_info(template):
+	for log_line in template["DebugInfo"]["Log"]:
+		print(log_line)
+def do_action_query_db_from_template(db_conn, args):
+	if not os.path.isfile(args.query_from_file):
+		print("[!] error: query template failed - file not found '%s'" % args.query_from_file)
+		return
+
+	template = parse_query_template_file(args.query_from_file, args.verbose_mode)
+	if template is None:
+		print("[!] error: query template failed - missing file content '%s'" % args.query_from_file)
+		return
+	if not template["StatusOK"]:
+		print("[!] error: parse query template failed '%s'" % template["path"])
+		for log_line in template["DebugInfo"]["Log"]:
+			print(log_line)
+		out_query_template_debug_info(template)
+		return
+
+	template["Inputs"] = args.template_parameters
+
+	parameters = list(template["Parameters"].keys())
+
+	template["Matching_Parameter_Inputs"] = True
+	if len(template["Inputs"]) != len(parameters):
+		template["StatusOK"] = False
+		template["Matching_Parameter_Inputs"] = False
+		if args.template_parameters is not None and not args.inspect_query_template:
+			print("[!] warning: query template failed; incorrect num of param fields: '%s'" % template["path"])
+
+			template["DebugInfo"]["Log"].append("[!] warning: query template failed; incorrect num of param fields: '%s'" % template["path"])
+			return
+	
+	# // add input value to parameter & format query
+	if template["Matching_Parameter_Inputs"]:
+		query = template["Template"]
+		for i in range(len(parameters)):
+			param_name = parameters[i]
+			param = template["Parameters"][param_name]
+			# add input value to parameter
+			param["value"] = template["Inputs"][i]
+			# store updated parameter
+			template["Parameters"][param["name"]] = param
+			# format query
+			query = query.replace("{{%s}}" % param["name"], param["value"])
+		template["Query"] = query
+
+	if args.inspect_query_template:
+		inspect_query_template(template, args.verbose_mode)
+		return
+
+	query = template["Query"]
 	rows = db.query_db(db_conn, query)
 	if rows is None:
-		print("[!] do_action_query_db(): status: failed - '%s'" % query)
+		#print("[!] do_action_query_db(): status: failed \n%s" % query)
+		print("[!] do_action_query_db(): status: failed")
+#		_raw_list = template["_raw"].split("\n")
+#		_raw_list = list(map(lambda n: "#> %s" % n.strip(), _raw_list))
+#		print('\n'.join(_raw_list))
 		return
 	#print(rows)
 	for row in rows:
@@ -976,8 +1096,8 @@ def main(args):
 		db.close(db_conn)
 		return
 	if args.query_from_file is not None:
-		print("# do_action_query_db_from_file")
-		do_action_query_db_from_file(db_conn, args)
+		print("# do_action_query_db_from_template")
+		do_action_query_db_from_template(db_conn, args)
 		db.close(db_conn)
 		return
 
@@ -1059,30 +1179,35 @@ if __name__ == '__main__':
     # 	s.comment LIKE "%222b8f27dbdfba8ddd559eeca27ea648%"
 	"""
 	parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter, description="Mgmt tool - Cobalt Strike Stub Release Information Database (CSRID)")
-	parser.add_argument('-L', '--list-releases', dest='list_releases', action='store_true', help="List Licensed Cobalt Strike (cobaltstrike.jar) Releases")
-	parser.add_argument('-r', '--select-release', metavar='<sha256>', dest='release_sha256', help="Specify specific release")
-	parser.add_argument('-V', '--select-version', metavar='<version>', dest='release_version', help="Select release(s) by version, supports format: 'x.y', 'x.', 'y.'" +
-		"\n(separate with comma for multiple versions)" +
-		"\n\n")
+#	parser.add_argument('-L', '--list-releases', dest='list_releases', action='store_true', help="List Licensed Cobalt Strike (cobaltstrike.jar) Releases")
+#	parser.add_argument('-r', '--select-release', metavar='<sha256>', dest='release_sha256', help="Specify specific release")
+#	parser.add_argument('-V', '--select-version', metavar='<version>', dest='release_version', help="Select release(s) by version, supports format: 'x.y', 'x.', 'y.'" +
+#		"\n(separate with comma for multiple versions)" +
+#		"\n\n")
 	
 	parser.add_argument('--db', metavar='<file.db>', dest='override_default_db_file', help="Connect to database, override default <DB_SQLITE_FILE> ('config.py')")
 	parser.add_argument('-A', '--attach-dbs', metavar='[<db_name>:]<file.db>[,...]', dest='attach_db', help="Attach database file with defined name, attach multiple dbs separated by comma" +
 		"\n\n")
 
+	parser.add_argument('-q', metavar='<query>', dest='query', help="Run query against the database")
+	parser.add_argument('--template', metavar='<file>', dest='query_from_file', help="Run query template against the database")
+	parser.add_argument('-p', metavar='<param>', dest='template_parameters', nargs='+', default=[], help="Parameter(s) for query template")
+	parser.add_argument('--show', dest='inspect_query_template', action='store_true', help="Show query template description, use '-v' to show parameters" +
+		"\n\n")
+
 	parser.add_argument('--dbs', dest='action_enum_databases', action='store_true', help="Enumerate databases; use '-v' to out in table-format or '--json' for json-format, supports '--count'")
 	parser.add_argument('--tables', dest='action_enum_tables', action='store_true', help="Enumerate database tables")
 	parser.add_argument('--columns', dest='action_enum_columns', action='store_true', help="Enumerate database table columns")
-	parser.add_argument('--schema', dest='schema', action='store_true', help="Dump schema when enumerating dbs, tables & columns")
+	parser.add_argument('--schema', dest='schema', action='store_true', help="Show schema for dbs, tables and columns")
 	parser.add_argument('--exclude-sysdbs', dest='exclude_sysdbs', action='store_true', help="Exclude system databases when enumerating tables (sqlite_schema, sqlite_temp_schema)")
-	
-	
-	parser.add_argument('--dump', dest='action_dump_table_entries', action='store_true', help="Dump database table entries")
 	parser.add_argument('--count', dest='count', action='store_true', help="Output count")
-	parser.add_argument('--limit', metavar='<row_count>', dest='limit', type=int, help="Constrain the number of rows returned by a query")
-	parser.add_argument('--offset', metavar='<offset>', dest='offset', type=int, help="Offset")
-	parser.add_argument('-D', '--database', metavar='<db_name>', dest='db_name', help="Database to enumerate")
-	parser.add_argument('-T', '--table', metavar='<table_name>', dest='table_name', help="Database table(s) to enumerate")
-	parser.add_argument('-C', '--column', metavar='<column_name>', dest='column_name', help="Database table column(s) to enumerate" +
+	parser.add_argument('--dump', dest='action_dump_table_entries', action='store_true', help="Dump database table entries")
+	parser.add_argument('--limit', metavar='<row_count>', dest='limit', type=int, help="Constrain the number of rows returned when using '--dump'")
+	#parser.add_argument('--offset', metavar='<offset>', dest='offset', type=int, help="Offset where '--limit' should start")
+	parser.add_argument('--offset', metavar='<offset>', dest='offset', type=int, help="Define the start of returned rows, use '--limit'")
+	parser.add_argument('-D', metavar='<DB>', dest='db_name', help="Select database")
+	parser.add_argument('-T', metavar='<TBL>', dest='table_name', help="Select database table(s)")
+	parser.add_argument('-C', metavar='<COL>', dest='column_name', help="Select database table column(s)" +
 		"\n\n")
 	
 	parser.add_argument('--create', metavar='<file.db>', dest='create_db', help="Create an empty database file")
@@ -1091,21 +1216,15 @@ if __name__ == '__main__':
 	parser.add_argument('--export', metavar='<file>', dest='db_export', help='Export to file, use \'-T\' to specify table (add \'--schema\' for schema)' +
 		"\n\n")
 
-	parser.add_argument('--rm', dest='action_remove', action='store_true', help="Remove from database, combine with '-r' or '-V'")
+	#parser.add_argument('--rm', dest='action_remove', action='store_true', help="Remove from database, combine with '-r' or '-V'")
 	parser.add_argument('--trunc-table', dest='action_truncate_table', action='store_true', help="Remove all records from a table, use '-T' to specify table")
 	parser.add_argument('--drop-table', action='store_true', dest='action_drop_table', help="Drop table from database, use '-T' to specify table" +
 		"\n\n")
 
 	parser.add_argument('--json', dest='out_json', action='store_true', help="Output as json")
 	parser.add_argument('-v', dest='verbose_mode', action='store_true', help="Verbose output")
-	parser.add_argument('-s', dest='silent_mode', action='store_true', help="Silent output")
 	parser.add_argument('--dry', dest='dry_mode', action='store_true', help="dry mode - do not commit to database" +
 		"\n\n")
-	parser.add_argument('-q', '--query', metavar='<query>', dest='query', help="Run query against the database")
-	parser.add_argument('-Q', metavar='<file>', dest='query_from_file', help="Run query from file against the database")
-	parser.add_argument('--qparam', metavar='<query_params>', dest='query_parameters', nargs='+', default=[], help="Parameters for the database query")
-	parser.add_argument('--qdesc', dest='show_query_description', action='store_true', help="Show query description")
-
 
 	args = parser.parse_args()
 	main(args)
