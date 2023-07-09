@@ -1136,54 +1136,6 @@ if __name__ == '__main__':
 	* --define # do_define_db: --db <file.sql>
 	* --import # do_db_import: --db <file.db>, -D <db_name>, -T <table_name>
 	* --export # do_db_export: --db <file.db>, -D <db_name>, -T <table_name>
-
-	* -q # query: 
-	# * inner join
-	# https://www.sqlitetutorial.net/sqlite-inner-join/
-    #
-	# ** SQLite INNER JOIN examples
-	#    -q 'select m.md5, r.version, m.comment from release r inner join hash_map m on m.sha_256 = r.sha_256'
-	#      ('222b8f27dbdfba8ddd559eeca27ea648', '4.4', 'Cobalt Strike Java archive file hash, ref: https://www.virustotal.com/gui/file/7af9c759ac78da920395debb443b9007fdf51fa66a48f0fbdaafb30b00a8a858/details')
-	#    -q 'select m.md5, r.sha_256, r.version, m.comment from release r inner join hash_map m on r.version == "4.4"'
-	#      ('222b8f27dbdfba8ddd559eeca27ea648', '7af9c759ac78da920395debb443b9007fdf51fa66a48f0fbdaafb30b00a8a858', '4.4', 'Cobalt Strike Java archive file hash, ref: https://www.virustotal.com/gui/file/7af9c759ac78da920395debb443b9007fdf51fa66a48f0fbdaafb30b00a8a858/details')
-	#      ('04e0a11be59147a8d73d2b3e9fea832c', '7af9c759ac78da920395debb443b9007fdf51fa66a48f0fbdaafb30b00a8a858', '4.4', 'Cobalt Strike Java archive file hash, ref: https://www.virustotal.com/gui/file/a5e980aac32d9c7af1d2326008537c66d55d7d9ccf777eb732b2a31f4f7ee523/details')
-	#      ('653c0bdcb0d8ac0a12250441835871be', '7af9c759ac78da920395debb443b9007fdf51fa66a48f0fbdaafb30b00a8a858', '4.4', 'Cobalt Strike Java archive file hash, ref: https://www.virustotal.com/gui/file/b899a9a4c42ec0f193389faf0b06ba04e954ea4348e120964c677b0cd602cdb6/details')
-	#    -q 'select r.*, m.* from release r inner join hash_map m on r.version = "4.4"'
-	#      ('7af9c759ac78da920395debb443b9007fdf51fa66a48f0fbdaafb30b00a8a858', 'cobaltstrike.jar', '4.4', '2021-08-04', '', '222b8f27dbdfba8ddd559eeca27ea648', '7af9c759ac78da920395debb443b9007fdf51fa66a48f0fbdaafb30b00a8a858', 'Cobalt Strike Java archive file hash, ref: https://www.virustotal.com/gui/file/7af9c759ac78da920395debb443b9007fdf51fa66a48f0fbdaafb30b00a8a858/details')
-	#
-	# ** SQLite inner join – 3 tables example
-    #    SELECT
-    #        trackid,
-    #        tracks.name AS track,
-    #        albums.title AS album,
-    #        artists.name AS artist
-    #    FROM
-    #        tracks
-    #        INNER JOIN albums ON albums.albumid = tracks.albumid
-    #        INNER JOIN artists ON artists.artistid = albums.artistid;
-    #
-    # * show stager_stub for matching release
-    # SELECT
-    # 	r.*,
-    # 	s.*
-    # FROM release r
-    # 	INNER JOIN hash_map m ON r.sha_256 = m.sha_256
-    # 	INNER JOIN stager_stub s ON s.md5 = m.md5
-    # WHERE release r
-    #    -q 'SELECT r.*, s.* FROM release r INNER JOIN hash_map m ON r.sha_256 = m.sha_256 INNER JOIN stager_stub s ON s.md5 = m.md5'
-    #      ('7af9c759ac78da920395debb443b9007fdf51fa66a48f0fbdaafb30b00a8a858', 'cobaltstrike.jar', '4.4', '2021-08-04', '', '222b8f27dbdfba8ddd559eeca27ea648', '4.4', 'Licensed', "Release (cobaltstrike.jar) 4.4:[VERIFIED] https://verify.cobaltstrike.com/\\n#[INFO] 'cobaltstrike.jar' available at https://toscode.gitee.com/ssooking/cs_original.git\\n#[VT] https://www.virustotal.com/gui/file/7af9c759ac78da920395debb443b9007fdf51fa66a48f0fbdaafb30b00a8a858/details\\n[LEAKED]/[DOWNLOAD] https://github.com/trewisscotch/CobaltStr4.4\\n[IOC] (from known verified engagement) https://46.101.93[.]216/5ybM, https://46.101.93.216/rpc/11445362, <stage_blob>tiger-stg-sh.tun.sashimis.co.uk, tiger.lastcat[.]co.uk (143.198.240[.]63), sashimis[.]co.uk (Resolved IP: 67.205.164[.]63, changed to: 46.101.93[.]216)\\n#Sample Downloaded")
-	# ** find stager_stub records where comment contains '222b8f27dbdfba8ddd559eeca27ea648'
-	#    -q 'SELECT * FROM stager_stub WHERE comment LIKE "%222b8f27dbdfba8ddd559eeca27ea648%"'
-	#      ('222bec8f27ed9bed9fecbaec8ded9d55', '4.4', 'Likely Licensed', "Version guessed through '1768.py' (Didier Stevens). Most likely legit version 4.4, from known verified engagement (see [IOC] for Stub.MD5 '222b8f27dbdfba8ddd559eeca27ea648').:[IOC] (from known verified engagement) <stage_blob>.stage.289493.tun.sashimis[.]co.uk (67.205.164[.]63), sashimis[.]co.uk (Resolved IP 67.205.164[.]63, changed to: 46.101.93[.]216)")
-    #      ('222bec8fed9bed9fecbaec8ded9d55ec', '4.4', 'Likely Licensed', "Version guessed through '1768.py' (Didier Stevens). Most likely legit version 4.4, from known verified engagement (see [IOC] for Stub.MD5 '222b8f27dbdfba8ddd559eeca27ea648').:[IOC] (from known verified engagement) dns server: 67.205.164[.]63, c2-server: tun.sashimis[.]co.uk, sashimis[.]co.uk (Resolved IP 67.205.164[.]63, changed to: 46.101.93[.]216)")
-    #
-    # SELECT
-    # 	s.*
-    # FROM stager_stub s
-    # 	INNER JOIN hash_map m ON m.md5 = s.md5
-    # 	INNER JOIN release r ON r.sha_256 = m.sha_256
-    # WHERE
-    # 	s.comment LIKE "%222b8f27dbdfba8ddd559eeca27ea648%"
 	"""
 	parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter, description="Mgmt tool - Cobalt Strike Stub Release Information Database (CSRID)")
 #	parser.add_argument('-L', '--list-releases', dest='list_releases', action='store_true', help="List Licensed Cobalt Strike (cobaltstrike.jar) Releases")
