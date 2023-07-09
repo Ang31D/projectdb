@@ -520,9 +520,23 @@ def do_action_dump_table_records(db_conn, args):
 			print(table_schema)
 		return
 
+	select_columns = ''
+	if args.column_name is not None:
+		table_columns = db.table_columns(db_conn, db_name, table_name)
+		columns = args.column_name.split(",")
+		for column in columns:
+			column_name = column.strip()
+			if column_name not in table_columns:
+				continue
+			if len(select_columns) > 0:
+				select_columns += ","
+			select_columns += column_name
+	if len(select_columns) == 0:
+		select_columns = '*'
+
 	query = '''
-		SELECT * FROM %s
-	''' % table_name
+		SELECT %s FROM %s
+	''' % (select_columns, table_name)
 	if args.limit is not None:
 		query += " LIMIT %s" % args.limit
 	if args.offset is not None:
@@ -539,12 +553,16 @@ def do_action_dump_table_records(db_conn, args):
 			print(record_count)
 		return
 
-	if rows is None:
-		return
+	#if rows is None:
+	#	return
+
+	headers = []
+	if select_columns == '*':
+		headers = db.table_columns(db_conn, db_name, table_name)
+	else:
+		headers = select_columns.split(",")
 
 	if args.out_json:
-		headers = db.table_columns(db_conn, db_name, table_name)
-		#print(headers)
 		out_json = []
 		for row in rows:
 			json_item = {}
@@ -558,21 +576,10 @@ def do_action_dump_table_records(db_conn, args):
 		print("[*] db table('%s') entries: %s" % (table_name, len(rows)))
 		table = []
 		for row in rows:
-			#table.append(list(map(lambda n: n, row)))
 			table.append(list(map(lambda n: n, row)))
-		#headers = ['cid','name','type','notnull','dflt_value','pk']
-		headers = ['sha_256', 'filename', 'version', 'release_date', 'comment']
 		print(tabulate(table, headers=headers, tablefmt='github'))
 		return
 
-	for row in rows:
-		print(row)
-		#print(str(row))
-	return
-	#print(rows)
-	#table_list = list(map(lambda n: n, rows))
-	#print(table_list)
-	#return
 	for row in rows:
 		print(row)
 
