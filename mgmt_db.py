@@ -1,10 +1,11 @@
 #!/usr/bin/python3
 import argparse
 import os
-#from core.sqlite_helper import *
+import config
 import core.sqlite_helper as db
 import core.cs_db as cs_db
-import config
+import core.script_lib as lib
+import importlib
 from tabulate import tabulate
 import csv
 import json
@@ -998,6 +999,71 @@ def connect_db(db_file, args):
 		return None
 	return db_conn
 
+def do_action_script_help(args):
+	if args.script_help is None:
+		if args.verbose_mode:
+			print("[!] warning: no script defined")
+		return
+
+	lib_root_dir = lib.root_dir()
+
+	if not os.path.isdir(lib_root_dir):
+		if args.verbose_mode:
+			print("[!] error: folder not found - '%s'" % (lib_root_dir))
+		return
+
+	help_scripts = {}
+	script_repo = lib.repos()
+	
+	help_script = lib.parse_script_help(args.script_help)
+	for script_name in help_script:
+		script_path = lib.get_script_path_by_name(script_name)
+		if script_path in script_repo:
+			module_path = lib.script_path_as_module_path(script_path)
+			if module_path is None:
+				print("[!] warning: failed to convert script as module path - '%s'" % script_path)
+				continue
+			module = lib.get_script_module(module_path)
+			script_module = module.script()
+			script_module.help()
+		else:
+			print("[!] warning: script not found - '%s'" % script_path)
+
+def do_action_run_script(db_conn, args):
+	if args.run_scripts is None:
+		if args.verbose_mode:
+			print("[!] warning: no script defined")
+		return
+
+	lib_root_dir = lib.root_dir()
+
+	if not os.path.isdir(lib_root_dir):
+		if args.verbose_mode:
+			print("[!] error: folder not found - '%s'" % (lib_root_dir))
+		return
+
+	#script_args = []
+	#if args.script_args is not None:
+	#	script_args = args.script_args.split(",")
+
+	script_args = lib.parse_script_args(args.run_scripts, args.script_args)
+
+	script_paths = lib.repos()
+	for script_path in script_paths:
+		script = script_paths[script_path]
+		if script["name"] in script_args:
+			print(script_args[script["name"]]["args"])
+			script_module = lib.get_script_module(script["module_path"])
+			
+			init_script_module = script_module.script()
+			print(script)
+			module_args = script_args[script["name"]]["args"]
+			init_script_module.run(module_args)
+		#else:
+		#	print("Script '%s' unknown" % script["name"])
+
+	print("[!] do_action_run_script() - NOT IMPLEMENTED")
+
 def main(args):
 	if args.create_db is not None:
 		print("# create_db")
@@ -1107,6 +1173,14 @@ def main(args):
 		do_action_query_db_from_template(db_conn, args)
 		db.close(db_conn)
 		return
+	if args.script_help is not None:
+		db.close(db_conn)
+		do_action_script_help(args)
+		return
+	if args.run_scripts is not None:
+		do_action_run_script(db_conn, args)
+		db.close(db_conn)
+		return
 
 
 	"""
@@ -1179,6 +1253,16 @@ if __name__ == '__main__':
 	parser.add_argument('--trunc-table', dest='action_truncate_table', action='store_true', help="Remove all records from a table, use '-T' to specify table")
 	parser.add_argument('--drop-table', action='store_true', dest='action_drop_table', help="Drop table from database, use '-T' to specify table" +
 		"\n\n")
+
+	#<Lua scripts> is a comma separated list of directories, script-files or script-categories
+	parser.add_argument('--script', metavar='<script_name>', dest='run_scripts', help="Run script(s) against the database; comma separated list")
+	parser.add_argument('--script-args', metavar='<script_name>.<script_arg>=\'<value>\'', dest='script_args', help="provide arguments to scripts; comma separated list." +
+		"\nuse '<script_name>.help' to show help about script")
+	parser.add_argument('--ext-script', metavar='<folder>', dest='extend_script', help="Adds another \"scripts\" directory; comma separated list")
+	parser.add_argument('--script-help', metavar='<script_name>', dest='script_help', help="Show help about scripts. Comma-separated list of" +
+		"\nscript-files or script-categories." +
+		"\n\n")
+	
 
 	parser.add_argument('--json', dest='out_json', action='store_true', help="Output as json")
 	parser.add_argument('-v', dest='verbose_mode', action='store_true', help="Verbose output")
