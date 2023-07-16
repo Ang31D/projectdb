@@ -85,15 +85,19 @@ class script:
 			pass
 		output = "  %s" % self.description
 		print(output)
+		# max 93 in length until new line (\n)
+		# ex.:             "\n * being printed, it is also saved in the Nmap registry so other Nmap scripts can use it. That
 		detailed_output  = "\n  Lists available scripts that can be executed through the '--script' argument."
 		detailed_output += "\n  Use '--script-help <script>' to view help of each script."
 		detailed_output += "\n"
 		detailed_output += "\n\n  To show further details, use the 'show' script argument:"
 		detailed_output += "\n    --script-args show='<option>[,<option>]'"
 		detailed_output += "\n    * Options:"
-		detailed_output += "\n      category - shows the categories for the script"
-		detailed_output += "\n      path     - shows the script path"
+		detailed_output += "\n      category    - shows the categories for the script"
+		detailed_output += "\n      script-path - shows the script path"
 		detailed_output += "\n\n  To filter based on category, use --script-args category=<category>[,<category>]"
+		detailed_output += "\n\n  To list by categories, use --script-args list-by=category."
+		detailed_output += "\n      To show the script in the category, use --script-args show='category-script'"
 		print(detailed_output)
 
 	def run(self, args={}):
@@ -103,9 +107,12 @@ class script:
 			print("[!] error: extention not found - '%s'" % "script.repo-dir")
 			return
 
-		self.list_scripts(args)
+		if "list-by" in args and args["list-by"]["value"] == "category":
+			self._list_by_categories(args)
+		else:
+			self._list_scripts(args)
 		
-	def list_scripts(self, args):
+	def _list_scripts(self, args):
 		repo_dir = self._script_repo_dir
 		if not os.path.isdir(repo_dir):
 			print("[!] error: repo-dir not found - '%s'" % (repo_dir))
@@ -135,9 +142,9 @@ class script:
 		for script_path in list(script_repo.keys()):
 			script = script_repo[script_path]
 			# convert absolute to relative path
-			lib_parent_dir = os.path.dirname(repo_dir)
-			script_rel_path = os.path.join(repo_dir[len(lib_parent_dir):], script["filename"])
-			rel_module_path = '.'.join(script["module_path"].split(".")[1:])
+			#lib_parent_dir = os.path.dirname(repo_dir)
+			#script_rel_path = os.path.join(repo_dir[len(lib_parent_dir):], script["filename"])
+			#rel_module_path = '.'.join(script["module_path"].split(".")[1:])
 
 			script_item = ["  ", script["name"], ":"]
 			script_desc = script["description"]
@@ -153,7 +160,7 @@ class script:
 				module = lib.get_script_module(script["module_path"])
 				if "category" in show_options:
 					script_item.append("(%s)" % ', '.join(script_module.categories))
-				if "path" in show_options:
+				if "script-path" in show_options:
 					script_item.append("#")
 					script_item.append(script["path"])
 			if len(category_filter) > 0:
@@ -166,3 +173,92 @@ class script:
 
 			table.append(script_item)
 		print(tabulate(table, tablefmt='plain'))
+
+	def _list_by_categories(self, args):
+		print("NOT YET FULLY DONE")
+		print("list_categories")
+		repo_dir = self._script_repo_dir
+		if not os.path.isdir(repo_dir):
+			print("[!] error: repo-dir not found - '%s'" % (repo_dir))
+			return
+
+		verbose_mode = False
+		if "_internal.verbose_mode" in self._extend:
+			verbose_mode = self._extend["_internal.verbose_mode"]
+
+		script_repo = lib.repos(repo_dir)
+
+		table = []
+		categories = {}
+		print("Script categories\n%s" % ("-"*len("Script categories")))
+		#if len(list(script_repo.keys())) > 0:
+		#	print("")
+
+		category_filter = []
+		if "category" in args:
+			for category in args["category"]["value"].split(","):
+				category_filter.append(category.strip())
+		
+		show_options = {}
+		if "show" in args:
+			for option in args["show"]["value"].split(","):
+				option_name = option.strip()
+				show_options[option_name] = True
+
+
+		for script_path in list(script_repo.keys()):
+			script = script_repo[script_path]
+			module = lib.get_script_module(script["module_path"])
+			if module is None:
+				continue
+			script_module = module.script()
+			#print(script_module.categories)
+			for category in script_module.categories:
+				if len(category_filter) > 0:
+					if category not in category_filter:
+						continue
+				if category not in categories:
+					categories[category] = []
+				categories[category].append(script_path)
+		#print('\n'.join(list(categories)))
+
+		for category in categories:
+			table = []
+			output = ''
+			if len(show_options) > 0:
+				#output = '\n'
+				pass
+			output += "* %s" % category
+			#print("\n* %s" % category)
+			print(output)
+			if len(show_options) == 0:
+				continue
+			for script_path in categories[category]:
+				#print(script_path)
+				script = script_repo[script_path]
+				#script_item = script["name"]
+				script_item = ["  ", script["name"]]
+				#if "category-script" in show_options:
+				#	pass
+				#	#print(script)
+				#elif "category-path" in show_options:
+				#	pass
+				#	#print(script["path"])
+				if "script-description" in show_options:
+					script_item.append(":")
+					script_desc = script["description"]
+					if len(script_desc) == 0:
+						script_desc = "<missing>"
+					script_item.append(script_desc)
+					#script_item.append("%s" % script["description"])
+				if "script-path" in show_options:
+					script_item.append("#")
+					script_item.append(script["path"])
+				else:
+					pass
+					#print(script["name"])
+				#script_item += " "
+				#print(script_item)
+				#script_item = ["  ", script["name"], ":"]
+				table.append(script_item)
+			print(tabulate(table, tablefmt='plain'))
