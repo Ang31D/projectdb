@@ -1013,18 +1013,38 @@ def do_action_script_help(args):
 		return
 
 	help_scripts = {}
-	script_repo = lib.repos()
+	#script_repo = lib.repos()
+	extend_script = None
+	repo_dir = lib_root_dir
+	if args.extend_script is not None:
+		extend_script = args.extend_script
+		repo_dir = args.extend_script
+	script_repo = lib.repos(repo_dir)
 	
 	help_script = lib.parse_script_help(args.script_help)
+#	print(help_script)
 	for script_name in help_script:
-		script_path = lib.get_script_path_by_name(script_name)
+#		print("script_name: %s" % script_name)
+		#script = lib.get_script_from_repo_dir(script_name, repo_dir)
+		script = lib.get_script_from_repo(script_name, script_repo)
+		if script is None:
+			print("[!] warning: failed to get script by name - '%s'" % script_name)
+			continue
+#		print("********** output script **********")
+#		print(script)
+		script_path = script["path"]
+		#script_path = lib.get_script_path_by_name(script_name)
+#		print(script_path)
 		if script_path in script_repo:
-			module_path = lib.script_path_as_module_path(script_path)
+			#module_path = lib.script_path_as_module_path(script_path)
+			module_path = script["module_path"]
 			if module_path is None:
 				print("[!] warning: failed to convert script as module path - '%s'" % script_path)
 				continue
 			module = lib.get_script_module(module_path)
 			script_module = module.script()
+			script_module.extend({"_internal.script": script})
+			script_module.extend({"_internal.verbose_mode": args.verbose_mode})
 			script_module.help()
 		else:
 			print("[!] warning: script not found - '%s'" % script_path)
@@ -1042,29 +1062,52 @@ def do_action_run_script(db_conn, args):
 			print("[!] error: folder not found - '%s'" % (lib_root_dir))
 		return
 
-	#script_args = []
-	#if args.script_args is not None:
-	#	script_args = args.script_args.split(",")
+	run_script_args = lib.parse_raw_script_args(args.run_scripts, args.script_args)
+	#run_script_args = lib.parse_script_args(args.run_scripts, args.script_args)
+#	print("-"*88)
+#	print(run_script_args)
+#	print("-"*88)
+	if run_script_args is None:
+		print("[!] error: lib.parse_script_args(args.run_scripts, args.script_args)")
+		return
 
-	script_args = lib.parse_script_args(args.run_scripts, args.script_args)
+	
+	repo_dir = lib_root_dir
+	if args.extend_script is not None:
+		#extend_script = os.path.realpath(args.extend_script)
+		repo_dir = args.extend_script
+	script_repo = lib.repos(repo_dir)
 
-	script_paths = lib.repos()
-	for script_path in script_paths:
-		script = script_paths[script_path]
-		if script["name"] in script_args:
-			print(script_args[script["name"]]["args"])
-			script_module = lib.get_script_module(script["module_path"])
+	for script_path in script_repo:
+		script = script_repo[script_path]
+		if script["name"] in run_script_args:
+			run_script_item = run_script_args[script["name"]]
+			module = lib.get_script_module(script["module_path"])
 			
-			init_script_module = script_module.script()
-			print(script)
-			module_args = script_args[script["name"]]["args"]
-			init_script_module.run(module_args)
+			if module is None:
+				print("[!] warning: failed to get script module - '%s'" % script["module_path"])
+				continue
+			
+			script_module = module.script()
+			script_module.extend({"_internal.script": script})
+			script_module.extend({"_internal.verbose_mode": args.verbose_mode})
+			if "sqlite" in script_module.requirements:
+				script_module.extend({"sqlite.db_conn": db_conn})
+				#script_module.extend({"sqlite": {"db_conn", db_conn}})
+			if "script-repo" in script_module.requirements:
+				script_module.extend({"script.repo-dir": repo_dir})
+			module_args = run_script_args[script["name"]]["args"]
+			script_module.run(module_args)
 		#else:
 		#	print("Script '%s' unknown" % script["name"])
 
-	print("[!] do_action_run_script() - NOT IMPLEMENTED")
+#	print("[!] do_action_run_script() - NOT IMPLEMENTED")
 
 def main(args):
+	if args.script_help is not None:
+		do_action_script_help(args)
+		return
+
 	if args.create_db is not None:
 		print("# create_db")
 		if not create_db(args):
@@ -1076,6 +1119,12 @@ def main(args):
 	db_file = get_db_file(args)
 	db_conn = connect_db(db_file, args)
 	if db_conn is None:
+		print("[!] error: database failed to connect - '%s'" % db_file)
+		return
+
+	if args.run_scripts is not None:
+		do_action_run_script(db_conn, args)
+		db.close(db_conn)
 		return
 
 	"""
@@ -1173,15 +1222,6 @@ def main(args):
 		do_action_query_db_from_template(db_conn, args)
 		db.close(db_conn)
 		return
-	if args.script_help is not None:
-		db.close(db_conn)
-		do_action_script_help(args)
-		return
-	if args.run_scripts is not None:
-		do_action_run_script(db_conn, args)
-		db.close(db_conn)
-		return
-
 
 	"""
 		Stub Release Management
@@ -1256,7 +1296,7 @@ if __name__ == '__main__':
 
 	#<Lua scripts> is a comma separated list of directories, script-files or script-categories
 	parser.add_argument('--script', metavar='<script_name>', dest='run_scripts', help="Run script(s) against the database; comma separated list")
-	parser.add_argument('--script-args', metavar='<script_name>.<script_arg>=\'<value>\'', dest='script_args', help="provide arguments to scripts; comma separated list." +
+	parser.add_argument('--script-args', metavar='<script_name>.<script_arg>=\'<value>\'', dest='script_args', nargs='+', help="provide arguments to scripts; comma separated list." +
 		"\nuse '<script_name>.help' to show help about script")
 	parser.add_argument('--ext-script', metavar='<folder>', dest='extend_script', help="Adds another \"scripts\" directory; comma separated list")
 	parser.add_argument('--script-help', metavar='<script_name>', dest='script_help', help="Show help about scripts. Comma-separated list of" +
