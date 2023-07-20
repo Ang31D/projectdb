@@ -177,7 +177,7 @@ def do_sub_actions_list_releases(db_conn, args):
 	else:
 		do_action_list_releases(db_conn, args)
 
-def do_sub_actions_remove(db_conn, args):
+def do_sub_actions_remove_release(db_conn, args):
 	dry_mode = args.dry_mode
 	if args.release_sha256 is not None:
 		sha_256 = args.release_sha256
@@ -1230,12 +1230,14 @@ def main(args):
 		print("[!] health check failed")
 		return
 
-	if args.list_releases:
-		do_sub_actions_list_releases(db_conn, args)
+	#if args.list_releases:
+	#	do_sub_actions_list_releases(db_conn, args)
 
-	if args.action_remove:
-		do_sub_actions_remove(db_conn, args)
-		return
+	#if args.action_remove:
+	#	do_sub_actions_remove_release(db_conn, args)
+	#	return
+
+	print("[!] warning: no action was executed!")
 
 	print("[*] status - total changes: %s" % db_conn.total_changes)
 	db.close(db_conn)
