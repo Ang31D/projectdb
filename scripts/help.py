@@ -84,7 +84,8 @@ class script:
 	def show_help(self):
 		#detailed_output  = "\n* being printed, it is also saved in the Nmap registry so other Nmap scripts can use it. That"
 		# ^-- examples of max length, taken from: nmap --script-help smb-brute
-		detailed_output  = "\n* Extended script feature"
+		#detailed_output  = "\n* Extended script feature"
+		detailed_output  = "Extended script feature\n%s" % ("-"*len("Extended script feature"))
 		detailed_output += "\n\n  The '--script <script>' argument defines which script to run."
 		detailed_output += "\n  Combine with '--script-args <arg-format> [<arg-format> ...]' to pass arguments to the script."
 		detailed_output += "\n  The <arg-format> is formatted as follows: script.arg=\'<value>\'"
@@ -94,5 +95,5 @@ class script:
 		detailed_output += "\n"
 		detailed_output += "\n  * Examples"
 		detailed_output += "\n    - List available scripts"
-		detailed_output += "\n      --script list [-v]"
+		detailed_output += "\n      --script list [--script-args show='category']"
 		print(detailed_output)
