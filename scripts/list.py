@@ -4,13 +4,17 @@ from tabulate import tabulate
 
 """
 list available scripts
+
+--ext-script projects/csrid/scripts --script list --script-args  list-by='category' show='script-description'
 """
 
 class script:
 	def __init__(self):
 		self.name = '.'.join(os.path.basename(__file__).split(".")[:-1])
+		self.author = "Kim Bokholm"
 		self.description = "Lists available scripts"
 		self.requirements = ["script-repo"]
+		# ^-- maybe switch to 'dependencies' instead of 'requirements'
 		self._categories = ["help"]
 		self._extend = {}
 		self._set_categories()
@@ -228,22 +232,22 @@ class script:
 			if len(show_options) > 0:
 				#output = '\n'
 				pass
-			output += "* %s" % category
+			output = "* %s" % category
 			#print("\n* %s" % category)
 			print(output)
+			script_item=[]
+			#script_item.append("* %s" % category)
+			#table.append(script_item)
 			if len(show_options) == 0:
-				continue
+				#continue
+				pass
+
 			for script_path in categories[category]:
+				script_item=[""]
 				#print(script_path)
 				script = script_repo[script_path]
 				#script_item = script["name"]
-				script_item = ["  ", script["name"]]
-				#if "category-script" in show_options:
-				#	pass
-				#	#print(script)
-				#elif "category-path" in show_options:
-				#	pass
-				#	#print(script["path"])
+				script_item.append("%s" % script["name"])
 				if "script-description" in show_options:
 					script_item.append(":")
 					script_desc = script["description"]
