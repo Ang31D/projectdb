@@ -227,6 +227,8 @@ def do_action_enum_databases(db_conn, args):
 		
 		if not args.out_json:
 			print("[*] dbs: %s" % len(db_list))
+			if not args.schema and not args.count:
+				print("[?] (use '--count' to show table count for each database)")
 			print(tabulate(db_list, headers=headers, tablefmt='github'))
 		else:
 			out_json = []
@@ -320,9 +322,8 @@ def do_action_enum_tables(db_conn, args):
 		headers = ['db', 'table']
 
 	if args.verbose_mode or args.schema:
-		if not args.schema:
-			headers.append('columns')
-		if args.count and not args.schema:
+		if not args.schema and args.count:
+			# see below: add records count to table item
 			headers.append('records')
 		
 		for i in range(len(table_list)):
@@ -330,17 +331,17 @@ def do_action_enum_tables(db_conn, args):
 			table_list[i] = [*table_list[i],]
 
 			table_name = table_list[i][1]
-			if not args.schema:
-				# add columns to table item
-				table_columns = db.table_columns(db_conn, db_name, table_name)
-				table_list[i].append(len(table_columns))
-			if args.count and not args.schema:
-				# add table record count to table item
+			if not args.schema and args.count:
+				# add records count to table item
 				record_count = db.record_count(db_conn, table_name)
 				table_list[i].append(record_count)
 		
 		if not args.out_json:
 			print("[*] db tables: %s" % len(table_list))
+			
+			if not args.schema and not args.count:
+				print("[?] (use '--count' to show record count for each table)")
+
 			print(tabulate(table_list, headers=headers, tablefmt='github'))
 		else:
 			out_json = []
@@ -461,6 +462,8 @@ def do_action_enum_columns(db_conn, args):
 
 		if not args.out_json:
 			print("[*] db(%s) table(%s) columns: %s" % (total_db_count, total_table_count, total_column_count))
+			if not args.schema and not args.count:
+				print("[?] (use '--count' to show column count instead of names)")
 			print(tabulate(db_table_column_list, headers=headers, tablefmt='github'))
 		else:
 			out_json = []
@@ -1022,6 +1025,7 @@ def do_action_script_help(args):
 	script_repo = lib.repos(repo_dir)
 	
 	help_script = lib.parse_script_help(args.script_help)
+	help_script_args = lib.parse_raw_script_args(args.script_help, args.script_args)
 #	print(help_script)
 	for script_name in help_script:
 #		print("script_name: %s" % script_name)
@@ -1044,6 +1048,7 @@ def do_action_script_help(args):
 			module = lib.get_script_module(module_path)
 			script_module = module.script()
 			script_module.extend({"_internal.script": script})
+			script_module.extend({"_internal.script.args": help_script_args})
 			script_module.extend({"_internal.verbose_mode": args.verbose_mode})
 			script_module.help()
 		else:
@@ -1063,14 +1068,10 @@ def do_action_run_script(db_conn, args):
 		return
 
 	run_script_args = lib.parse_raw_script_args(args.run_scripts, args.script_args)
-	#run_script_args = lib.parse_script_args(args.run_scripts, args.script_args)
-#	print("-"*88)
-#	print(run_script_args)
-#	print("-"*88)
 	if run_script_args is None:
 		print("[!] error: lib.parse_script_args(args.run_scripts, args.script_args)")
 		return
-
+	#print("do_action_run_script() - %s" % run_script_args)
 	
 	repo_dir = lib_root_dir
 	if args.extend_script is not None:
@@ -1098,8 +1099,8 @@ def do_action_run_script(db_conn, args):
 				script_module.extend({"script.repo-dir": repo_dir})
 			module_args = run_script_args[script["name"]]["args"]
 			script_module.run(module_args)
-		#else:
-		#	print("Script '%s' unknown" % script["name"])
+#		else:
+#			print("Script '%s' unknown" % script["name"])
 
 #	print("[!] do_action_run_script() - NOT IMPLEMENTED")
 
@@ -1270,9 +1271,9 @@ if __name__ == '__main__':
 	parser.add_argument('--show', dest='inspect_query_template', action='store_true', help="Show query template description, use '-v' to show parameters" +
 		"\n\n")
 
-	parser.add_argument('--dbs', dest='action_enum_databases', action='store_true', help="Enumerate databases; use '-v' to out in table-format or '--json' for json-format, supports '--count'")
-	parser.add_argument('--tables', dest='action_enum_tables', action='store_true', help="Enumerate database tables")
-	parser.add_argument('--columns', dest='action_enum_columns', action='store_true', help="Enumerate database table columns")
+	parser.add_argument('--dbs', dest='action_enum_databases', action='store_true', help="Enumerate databases; use '--count' to output num of databases and with '-v' outputs table count per database")
+	parser.add_argument('--tables', dest='action_enum_tables', action='store_true', help="Enumerate database tables; use '--count' to output num of tables and with '-v' outputs records count per table")
+	parser.add_argument('--columns', dest='action_enum_columns', action='store_true', help="Enumerate database table columns; use '-v' to show column count instead")
 	parser.add_argument('--schema', dest='schema', action='store_true', help="Show schema for dbs, tables and columns")
 	parser.add_argument('--exclude-sysdbs', dest='exclude_sysdbs', action='store_true', help="Exclude system databases when enumerating tables (sqlite_schema, sqlite_temp_schema)")
 	parser.add_argument('--count', dest='count', action='store_true', help="Output count")
@@ -1298,16 +1299,14 @@ if __name__ == '__main__':
 
 	#<Lua scripts> is a comma separated list of directories, script-files or script-categories
 	parser.add_argument('--script', metavar='<script_name>', dest='run_scripts', help="Run script(s) against the database; comma separated list")
-	parser.add_argument('--script-args', metavar='<script_name>.<script_arg>=\'<value>\'', dest='script_args', nargs='+', help="provide arguments to scripts; comma separated list." +
-		"\nuse '<script_name>.help' to show help about script")
-	parser.add_argument('--ext-script', metavar='<folder>', dest='extend_script', help="Adds another \"scripts\" directory; comma separated list")
-	parser.add_argument('--script-help', metavar='<script_name>', dest='script_help', help="Show help about scripts. Comma-separated list of" +
-		"\nscript-files or script-categories." +
+	parser.add_argument('--script-args', metavar='[<script_name>.]<script_arg>=\'<value>\'', dest='script_args', nargs='+', help="Provide arguments to script; space separated list.")
+	parser.add_argument('--script-help', metavar='<script_name>', dest='script_help', help="Show help about script. Use '-v' to show internal script information.")
+	parser.add_argument('--ext-script', metavar='<folder>', dest='extend_script', help="Adds another \"scripts\" directory; comma separated list" +
 		"\n\n")
 	
 
 	parser.add_argument('--json', dest='out_json', action='store_true', help="Output as json")
-	parser.add_argument('-v', dest='verbose_mode', action='store_true', help="Verbose output")
+	parser.add_argument('-v', dest='verbose_mode', action='store_true', help="Verbose output. Output in table-format for 'Enumerate' options.")
 	parser.add_argument('--dry', dest='dry_mode', action='store_true', help="dry mode - do not commit to database" +
 		"\n\n")
 

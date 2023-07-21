@@ -49,19 +49,27 @@ class script:
 
 	def _script_internals(self):
 		data = ""
-		#print("-"*88)
 		if "_internal.script" in self._extend:
-			#print("[INTERNALS]")
 			data = "[INTERNALS]"
 			int_table = []
 			for key in self._extend["_internal.script"]:
 				int_table.append(["  ", "%s" % key, ":", "%s" % self._extend["_internal.script"][key]])
-			#print(tabulate(int_table, tablefmt='plain'))
+			
 			data += "\n%s" % tabulate(int_table, tablefmt='plain')
+			if "_internal.script.args" in self._extend:
+				script_args = self._extend["_internal.script.args"]
+				if self.name in script_args and "args" in script_args[self.name]:
+					args = script_args[self.name]["args"]
+					data += "\n\n  * Options"
+					if len(list(args)) > 0:
+						int_table = []
+						for key in args:
+							int_table.append(["  ", "%s" % key, ":", "%s" % args[key]["value"]])
+						data += "\n%s" % tabulate(int_table, tablefmt='plain')
+				else:
+					data += "\n%s" % script_args
 		else:
-			#print("[!] error: extention not found - '%s'" % "_internal.script")
 			data += "\n%s" % "[!] error: extention not found - '%s'" % "_internal.script"
-			pass
 		return data
 	def help(self):
 		verbose_mode = False
@@ -74,14 +82,6 @@ class script:
 		print(output)
 		if verbose_mode:
 			print("-"*88)
-#			if "_internal.script" in self._extend:
-#				print("[INTERNALS]")
-#				int_table = []
-#				for key in self._extend["_internal.script"]:
-#					int_table.append(["  ", "%s" % key, ":", "%s" % self._extend["_internal.script"][key]])
-#				print(tabulate(int_table, tablefmt='plain'))
-#			else:
-#				print("[!] error: extention not found - '%s'" % "_internal.script")
 			print(self._script_internals())
 			print("-"*88)
 		else:
@@ -90,11 +90,11 @@ class script:
 		output = "  %s" % self.description
 		print(output)
 		# max 93 in length until new line (\n)
-		# ex.:             "\n * being printed, it is also saved in the Nmap registry so other Nmap scripts can use it. That
+		# ex.:             "\n --------------------------------------------------------------------------------------------
 		detailed_output  = "\n  Lists available scripts that can be executed through the '--script' argument."
 		detailed_output += "\n  Use '--script-help <script>' to view help of each script."
 		detailed_output += "\n"
-		detailed_output += "\n\n  To show further details, use the 'show' script argument:"
+		detailed_output += "\n\n  To show further details, use the 'show' script option:"
 		detailed_output += "\n    --script-args show='<option>[,<option>]'"
 		detailed_output += "\n    * Options:"
 		detailed_output += "\n      category    - shows the categories for the script"
@@ -163,10 +163,13 @@ class script:
 			if len(show_options) > 0:
 				module = lib.get_script_module(script["module_path"])
 				if "category" in show_options:
-					script_item.append("(%s)" % ', '.join(script_module.categories))
-				if "script-path" in show_options:
+					#script_item.append("(%s)" % ', '.join(script_module.categories))
 					script_item.append("#")
-					script_item.append(script["path"])
+					script_item.append("%s" % ', '.join(script_module.categories))
+				if "script-path" in show_options:
+					#script_item.append("#")
+					#script_item.append("%s" % script["path"])
+					script_item.append("(%s)" % script["path"])
 			if len(category_filter) > 0:
 				found_category = False
 				for category in script_module.categories:
@@ -248,7 +251,8 @@ class script:
 				script = script_repo[script_path]
 				#script_item = script["name"]
 				script_item.append("%s" % script["name"])
-				if "script-description" in show_options:
+				#if "script-description" in show_options:
+				if 1==1 or "script-description" in show_options:
 					script_item.append(":")
 					script_desc = script["description"]
 					if len(script_desc) == 0:

@@ -50,7 +50,20 @@ class script:
 			int_table = []
 			for key in self._extend["_internal.script"]:
 				int_table.append(["  ", "%s" % key, ":", "%s" % self._extend["_internal.script"][key]])
+			
 			data += "\n%s" % tabulate(int_table, tablefmt='plain')
+			if "_internal.script.args" in self._extend:
+				script_args = self._extend["_internal.script.args"]
+				if self.name in script_args and "args" in script_args[self.name]:
+					args = script_args[self.name]["args"]
+					data += "\n\n  * Options"
+					if len(list(args)) > 0:
+						int_table = []
+						for key in args:
+							int_table.append(["  ", "%s" % key, ":", "%s" % args[key]["value"]])
+						data += "\n%s" % tabulate(int_table, tablefmt='plain')
+				else:
+					data += "\n%s" % script_args
 		else:
 			data += "\n%s" % "[!] error: extention not found - '%s'" % "_internal.script"
 		return data

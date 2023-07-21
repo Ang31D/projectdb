@@ -167,7 +167,6 @@ def parse_script_help(scripts_string):
 		scripts[script_name] = {"name": script_name}
 	return scripts
 
-
 def parse_script_arg_string(script_arg_string):
 	# ex. list.more='less'
 	# ex. list.set_var='more=less'
