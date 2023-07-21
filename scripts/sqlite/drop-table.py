@@ -136,7 +136,8 @@ class script:
 		db_file = args['db']['value']
 		table_name = args['table']['value']
 
-		db_name = None
+		#db_name = None
+		db_name = "main" # default database
 		if 'db-name' in args:
 			db_name = args['db-name']['value']
 
@@ -147,17 +148,6 @@ class script:
 		db_conn = self._connect_db(db_file)
 		if db_conn is None:
 			return
-
-		#if db_name is not None:
-		#	table_name = "%s.%s" % (db_name, table_name)
-
-		#if not db.table_exists(db_conn, table_name):
-		#	print("[!] warning: %s; missing table - '%s'" % (self.name, table_name))
-		#	db.close(db_conn)
-		#	return
-	
-		if db_name is None:
-			db_name = 'main'
 	
 		if dry_mode:
 			out_drop_statement = "'%s'" % table_name
