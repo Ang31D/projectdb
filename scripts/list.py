@@ -94,7 +94,10 @@ class script:
 		detailed_output  = "\n  Lists available scripts that can be executed through the '--script' argument."
 		detailed_output += "\n  Use '--script-help <script>' to view help of each script."
 		detailed_output += "\n"
-		detailed_output += "\n\n  To show further details, use the 'show' script option:"
+		detailed_output += "\n  * Options:"
+		detailed_output += "\n    search='<value>'  - (optional) search for <value> in script name or description"
+		detailed_output += "\n"
+		detailed_output += "\n  To show further details, use the 'show' script option:"
 		detailed_output += "\n    --script-args show='<option>[,<option>]'"
 		detailed_output += "\n    * Options:"
 		detailed_output += "\n      category    - shows the categories for the script"
@@ -134,6 +137,9 @@ class script:
 		
 		current_script_type = None
 		table = []
+		search_for = None
+		if "search" in args:
+			search_for = args["search"]["value"]
 		
 		show_options = []
 		if "show" in args:
@@ -152,6 +158,9 @@ class script:
 
 			script_item = ["  ", script["name"], ":"]
 			script_desc = script["description"]
+			if search_for is not None:
+				if search_for.lower() not in script["name"].lower() and search_for.lower() not in script_desc.lower():
+					continue
 			if len(script_desc) == 0:
 				script_desc = "<missing>"
 			script_item.append(script_desc)
