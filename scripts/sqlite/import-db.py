@@ -96,7 +96,7 @@ class script:
 		detailed_output  = "\n  Imports csv-data as records into the database table"
 		detailed_output += "\n  Use '--script-args' to pass options to this script."
 		detailed_output += "\n\n  * Options:"
-		detailed_output += "\n    db='<file.db>'        - the database (.db) file to connect to"
+		#detailed_output += "\n    db='<file.db>'        - the database (.db) file to connect to"
 		detailed_output += "\n    table='<table_name>'  - the table name to import into"
 		detailed_output += "\n    file='<file.csv>'     - the file containing (csv) data to import from"
 		detailed_output += "\n\n    db-name='<db_name>'   - (optional) overrides default (\"main\") db which the table exists in"
@@ -109,9 +109,9 @@ class script:
 			return
 
 		# // check requirements
-		if 'db' not in args:
-			print("[!] error: %s; missing 'db' option" % self.name)
-			return
+		#if 'db' not in args:
+		#	print("[!] error: %s; missing 'db' option" % self.name)
+		#	return
 		if 'table' not in args:
 			print("[!] error: %s; missing 'table' option" % self.name)
 			return
@@ -136,7 +136,6 @@ class script:
 		if "_internal.verbose_mode" in self._extend:
 			verbose_mode = self._extend["_internal.verbose_mode"]
 
-		db_file = args['db']['value']
 		table_name = args['table']['value']
 		data_file = args['file']['value']
 
@@ -144,7 +143,9 @@ class script:
 		if 'db-name' in args:
 			db_name = args['db-name']['value']
 
-		db_conn = self._connect_db(db_file)
+		#db_file = args['db']['value']
+		#db_conn = self._connect_db(db_file)
+		db_conn = self._extend["sqlite.db_conn"]
 		if db_conn is None:
 			return
 

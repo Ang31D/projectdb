@@ -832,6 +832,8 @@ def list_databases(db_conn, verbose_mode):
 			print(row)
 
 def do_action_attach_db(db_conn, args):
+	if args.attach_db is None:
+		return
 	db_list = args.attach_db.split(",")
 	#for attach_db in db_list:
 	#	if not ":" in attach_db:
@@ -1124,6 +1126,7 @@ def main(args):
 		return
 
 	if args.run_scripts is not None:
+		do_action_attach_db(db_conn, args)
 		do_action_run_script(db_conn, args)
 		db.close(db_conn)
 		return

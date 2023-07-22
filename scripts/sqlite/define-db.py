@@ -94,7 +94,7 @@ class script:
 		detailed_output  = "\n  Defines the sqlite database; create table through their definition file"
 		detailed_output += "\n  Use '--script-args' to pass options to this script."
 		detailed_output += "\n\n  * Options:"
-		detailed_output += "\n    db='<file.db>'        - the database (.db) file to define"
+		#detailed_output += "\n    db='<file.db>'        - the database (.db) file to define"
 		detailed_output += "\n    file='<table.sql>'    - the \"definition file\" that describes the table"
 		detailed_output += "\n\n    table='<table_name>'  - (optional) overrides table name to define; otherwise"
 		detailed_output += "\n                            the table name is defined by the definition file"
@@ -115,9 +115,9 @@ class script:
 			return
 
 		# // check requirements
-		if 'db' not in args:
-			print("[!] error: %s; missing 'db' option" % self.name)
-			return
+		#if 'db' not in args:
+		#	print("[!] error: %s; missing 'db' option" % self.name)
+		#	return
 		if 'file' not in args:
 			print("[!] error: %s; missing 'file' option" % self.name)
 			return
@@ -139,13 +139,14 @@ class script:
 		if "_internal.verbose_mode" in self._extend:
 			verbose_mode = self._extend["_internal.verbose_mode"]
 
-		db_file = args['db']['value']
 		definition_file = args['file']['value']
 		table_name = None
 		if 'table' in args:
 			table_name = args['table']['value']
 
-		db_conn = self._connect_db(db_file)
+		#db_file = args['db']['value']
+		#db_conn = self._connect_db(db_file)
+		db_conn = self._extend["sqlite.db_conn"]
 		if db_conn is None:
 			return
 	

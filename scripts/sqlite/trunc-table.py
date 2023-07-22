@@ -96,7 +96,7 @@ class script:
 		detailed_output  = "\n  Remove all records from a table"
 		detailed_output += "\n  Use '--script-args' to pass options to this script."
 		detailed_output += "\n\n  * Options:"
-		detailed_output += "\n    db='<file.db>'        - the database (.db) file to connect to"
+		#detailed_output += "\n    db='<file.db>'        - the database (.db) file to connect to"
 		detailed_output += "\n    table='<table_name>'  - the table to truncate"
 		detailed_output += "\n\n    db-name='<db_name>'   - (optional) overrides default (\"main\") db which the table exists in"
 		detailed_output += "\n    mode='dry'            - (optional) do not commit to database"
@@ -109,9 +109,9 @@ class script:
 			return
 
 		# // check requirements
-		if 'db' not in args:
-			print("[!] error: %s; missing 'db' option" % self.name)
-			return
+		#if 'db' not in args:
+		#	print("[!] error: %s; missing 'db' option" % self.name)
+		#	return
 		if 'table' not in args:
 			print("[!] error: %s; missing 'table' option" % self.name)
 			return
@@ -133,7 +133,6 @@ class script:
 		if "_internal.verbose_mode" in self._extend:
 			verbose_mode = self._extend["_internal.verbose_mode"]
 
-		db_file = args['db']['value']
 		table_name = args['table']['value']
 
 		db_name = None
@@ -144,7 +143,9 @@ class script:
 		if 'mode' in args and "dry" == args['mode']['value']:
 			dry_mode = True
 
-		db_conn = self._connect_db(db_file)
+		#db_file = args['db']['value']
+		#db_conn = self._connect_db(db_file)
+		db_conn = self._extend["sqlite.db_conn"]
 		if db_conn is None:
 			return
 
