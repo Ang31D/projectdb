@@ -158,9 +158,9 @@ class script:
 
 			script_item = ["  ", script["name"], ":"]
 			script_desc = script["description"]
-			if search_for is not None:
-				if search_for.lower() not in script["name"].lower() and search_for.lower() not in script_desc.lower():
-					continue
+			#if search_for is not None:
+			#	if search_for.lower() not in script["name"].lower() and search_for.lower() not in script_desc.lower():
+			#		continue
 			if len(script_desc) == 0:
 				script_desc = "<missing>"
 			script_item.append(script_desc)
@@ -185,6 +185,22 @@ class script:
 					if category in category_filter:
 						found_category = True
 				if not found_category:
+					continue
+
+			if search_for is not None:
+				#if search_for.lower() not in script["name"].lower() and search_for.lower() not in script_desc.lower() and search_for.lower() not in script_module.categories:
+				#	continue
+				found_match = False
+				if search_for.lower() in script["name"].lower():
+					found_match = True
+				if search_for.lower() in script_desc.lower():
+					found_match = True
+				#if search_for.lower() in script_module.categories:
+				#	found_match = True
+				for category in script_module.categories:
+					if search_for.lower() in category.lower():
+						found_match = True
+				if not found_match:
 					continue
 
 			table.append(script_item)
