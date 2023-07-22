@@ -95,7 +95,7 @@ class script:
 		detailed_output += "\n  Use '--script-help <script>' to view help of each script."
 		detailed_output += "\n"
 		detailed_output += "\n  * Options:"
-		detailed_output += "\n    search='<value>'  - (optional) search for <value> in script name or description"
+		detailed_output += "\n    find='<value>'  - (optional) search for <value>, match on script name or description"
 		detailed_output += "\n"
 		detailed_output += "\n  To show further details, use the 'show' script option:"
 		detailed_output += "\n    --script-args show='<option>[,<option>]'"
@@ -138,8 +138,8 @@ class script:
 		current_script_type = None
 		table = []
 		search_for = None
-		if "search" in args:
-			search_for = args["search"]["value"]
+		if "find" in args:
+			search_for = args["find"]["value"]
 		
 		show_options = []
 		if "show" in args:
