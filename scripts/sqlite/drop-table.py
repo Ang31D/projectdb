@@ -93,7 +93,7 @@ class script:
 		print(output)
 		# max 93 in length until new line (\n)
 		# ex.:             "\n --------------------------------------------------------------------------------------------
-		detailed_output  = "\n  Drop table from database"
+		detailed_output  = "\n  Delete the table from a database"
 		detailed_output += "\n  Use '--script-args' to pass options to this script."
 		detailed_output += "\n\n  * Options:"
 		#detailed_output += "\n    db='<file.db>'        - the database (.db) file to connect to"
