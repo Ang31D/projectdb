@@ -8,7 +8,8 @@ list available scripts
 --ext-script projects/csrid/scripts --script list --script-args  list-by='category' show='script-description'
 """
 
-class script:
+#class script:
+class init:
 	def __init__(self):
 		self.name = '.'.join(os.path.basename(__file__).split(".")[:-1])
 		self.author = "Kim Bokholm"
@@ -168,7 +169,7 @@ class script:
 			if module is None:
 				table.append(script_item)
 				continue
-			script_module = module.script()
+			script_module = module.init()
 			if len(show_options) > 0:
 				module = lib.get_script_module(script["module_path"])
 				if "category" in show_options:

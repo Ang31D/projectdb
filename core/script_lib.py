@@ -37,7 +37,8 @@ def _get_script_description(script_path):
 		return self_desc
 	with open(script_path, 'r') as f:
 		content = f.read()
-		if "self.description" in content and "def __init__(self" in content and "class script:" in content:
+		#if "self.description" in content and "def __init__(self" in content and "class script:" in content:
+		if "self.description" in content and "def __init__(self" in content and "class init:" in content:
 			init_pos_index = content.index("def __init__(self")
 			content = content[init_pos_index:]
 			pattern = r'self.description ?= ?"([^"]+)'

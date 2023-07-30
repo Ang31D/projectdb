@@ -10,7 +10,7 @@ search database
 --script search-db --script-args db=<file.db> table=<table_name>
 """
 
-class script:
+class init:
 	def __init__(self):
 		self.name = '.'.join(os.path.basename(__file__).split(".")[:-1])
 		self.author = "Kim Bokholm"

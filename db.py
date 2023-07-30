@@ -915,27 +915,29 @@ def do_action_script_help(args):
 	for script_name in help_script:
 #		print("script_name: %s" % script_name)
 		#script = lib.get_script_from_repo_dir(script_name, repo_dir)
-		script = lib.get_script_from_repo(script_name, script_repo)
-		if script is None:
+		#script = lib.get_script_from_repo(script_name, script_repo)
+		script_definition = lib.get_script_from_repo(script_name, script_repo)
+		if script_definition is None:
 			print("[!] warning: failed to get script by name - '%s'" % script_name)
 			continue
 #		print("********** output script **********")
 #		print(script)
-		script_path = script["path"]
+		script_path = script_definition["path"]
 		#script_path = lib.get_script_path_by_name(script_name)
 #		print(script_path)
 		if script_path in script_repo:
 			#module_path = lib.script_path_as_module_path(script_path)
-			module_path = script["module_path"]
+			module_path = script_definition["module_path"]
 			if module_path is None:
 				print("[!] warning: failed to convert script as module path - '%s'" % script_path)
 				continue
-			module = lib.get_script_module(module_path)
-			script_module = module.script()
-			script_module.extend({"_internal.script": script})
-			script_module.extend({"_internal.script.args": help_script_args})
-			script_module.extend({"_internal.verbose_mode": args.verbose_mode})
-			script_module.help()
+			script_module = lib.get_script_module(module_path)
+			#script_module = module.script()
+			script = script_module.init()
+			script.extend({"_internal.script": script_definition})
+			script.extend({"_internal.script.args": help_script_args})
+			script.extend({"_internal.verbose_mode": args.verbose_mode})
+			script.help()
 		else:
 			print("[!] warning: script not found - '%s'" % script_path)
 
@@ -974,7 +976,7 @@ def do_action_run_script(db_conn, args):
 				print("[!] warning: failed to get script module - '%s'" % script["module_path"])
 				continue
 			
-			script_module = module.script()
+			script_module = module.init()
 			script_module.extend({"_internal.script": script})
 			script_module.extend({"_internal.verbose_mode": args.verbose_mode})
 			if "sqlite" in script_module.requirements:

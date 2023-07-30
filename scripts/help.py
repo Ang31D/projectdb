@@ -6,7 +6,7 @@ from tabulate import tabulate
 list available scripts
 """
 
-class script:
+class init:
 	def __init__(self):
 		self.name = '.'.join(os.path.basename(__file__).split(".")[:-1])
 		self.description = "Help on how to use the extended script feature"
