@@ -69,6 +69,8 @@ def _get_repo_from_dir(repo_dir):
 			script_type = "generic"
 		else:
 			script_type = item_name
+		if not root.endswith("/%s" % config.SCRIPTS_DIR_NAME) and not ("/%s/" % config.SCRIPTS_DIR_NAME) in root:
+			continue
 
 		for file_name in files:
 			file_ext = pathlib.Path(file_name).suffix
