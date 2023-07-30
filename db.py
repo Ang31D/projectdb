@@ -3,7 +3,6 @@ import argparse
 import os
 import config
 import core.sqlite_helper as db
-import core.cs_db as cs_db
 import core.script_lib as lib
 import importlib
 from tabulate import tabulate
@@ -12,27 +11,6 @@ import json
 from itertools import repeat
 from collections import OrderedDict
 
-""" select table from database
-SELECT * FROM db_1.my_table
-"""
-
-def release_row_as_dict(release_row):
-	release_dict = {}
-	release_dict["sha_256"] = release_row[0]
-	release_dict["filename"] = release_row[1]
-	release_dict["version"] = release_row[2]
-	release_dict["release_date"] = release_row[3]
-	release_dict["comment"] = release_row[4]
-	return release_dict
-def release_ord_as_dict(release_ord):
-	release_dict = {}
-	release_dict["sha_256"] = release_ord["sha_256"]
-	release_dict["filename"] = release_ord["filename"]
-	release_dict["version"] = release_ord["version"]
-	release_dict["release_date"] = release_ord["release_date"]
-	release_dict["comment"] = release_ord["comment"]
-	return release_dict
-
 def get_db_file(args):
 	if args.override_default_db_file is not None:
 		return args.override_default_db_file
@@ -40,18 +18,6 @@ def get_db_file(args):
 	script_dir = os.path.dirname(os.path.realpath(__file__))
 	db_file = config.DB_SQLITE_FILE
 	return os.path.join(script_dir, db_file)
-
-#def get_releases(db_conn):
-#	result = []
-#	rows = db.query_db(db_conn, 'SELECT * FROM release')
-#	for row in rows:
-#		result.append(release_row_as_dict(row))
-#	return result
-def get_release(db_conn, sha_256):
-	release_row = cs_db.get_release(db_conn, sha_256)
-	if release_row is None:
-		return release_row
-	return release_row_as_dict(release_row)
 
 def do_db_health_check(db_file):
 	check_status = True
@@ -70,62 +36,6 @@ def do_db_health_check(db_file):
 
 	return check_status
 
-def do_action_list_releases(db_conn, args):
-	if args.out_json:
-		print(json.dumps(cs_db.get_releases(db_conn)))
-		return
-
-	for release in cs_db.get_releases(db_conn):
-		list_release(release, args.verbose_mode)
-def do_action_list_release(db_conn, sha_256, verbose_mode):
-	release = cs_db.get_release(db_conn, sha_256)
-	if release is None:
-		print("[!] warning: release not found - '%s'" % sha_256)
-	else:
-		list_release(release, verbose_mode)
-def do_action_list_release_by_version(db_conn, version, verbose_mode):
-	release_list = []
-	for version in version.split(","):
-		release_list += get_release_by_version(db_conn, version)
-	for release in release_list:
-		list_release(release, verbose_mode)
-def get_releases_by_versions(db_conn, version_list):
-	release_list = []
-	for version in version_list:
-		release_list += get_release_by_version(db_conn, version)
-	return release_list
-def get_release_by_version(db_conn, version):
-	release_list = []
-	for release in cs_db.get_releases(db_conn):
-		if version.endswith("."):
-			if release['version'].startswith(version):
-				release_list.append(release)
-		elif version.startswith("."):
-			if release['version'].endswith(version):
-				release_list.append(release)
-		elif not "." in version:
-			if version in release['version']:
-				release_list.append(release)
-		elif version == release['version']:
-			release_list.append(release)
-	return release_list
-def list_release(release, verbose_mode):
-	if verbose_mode:
-		print(release)
-	else:
-		#(SHA256) 043dfa038873462039c28cdc3e0e3356de814157e5e851cc0931bfe2d96d7e8e, Licensed (cobaltstrike.jar) Cobalt Strike v4.8 (Release Date: 2023-02-28)
-		out_format = "(SHA256) %s, Licensed (%s) Cobalt Strike v%s (Release Date: %s)" % (release['sha_256'], release['filename'], release['version'], release['release_date'])
-		print(out_format)
-def do_remove_release(db_conn, sha_256, verbose_mode, dry_mode):
-	if dry_mode:
-		print("[*] del release '%s'" % sha_256)
-		print("[!] dry mode - would have deleted release '%s'" % sha_256)
-		return
-	
-	if not db_del_release(db_conn, sha_256):
-		print("[!] error: db_del_release(): status: failed - '%s'" % sha_256)
-	else:
-		print("[*] release removed - '%s'" % sha_256)
 def do_action_truncate_table(db_conn, args):
 	db_name = args.db_name
 	table_name = args.table_name
@@ -166,33 +76,6 @@ def do_action_drop_table(db_conn, args):
 			print("[!] error: db_drop_table(): status: failed - '%s'" % table_name)
 		else:
 			print("[-] table dropped - '%s'" % table_name)
-
-def do_sub_actions_list_releases(db_conn, args):
-	if args.release_sha256 is not None:
-		sha_256 = args.release_sha256
-		do_action_list_release(db_conn, sha_256, args.verbose_mode)
-	elif args.release_version is not None:
-		release_version = args.release_version
-		do_action_list_release_by_version(db_conn, args.release_version, args.verbose_mode)
-	else:
-		do_action_list_releases(db_conn, args)
-
-def do_sub_actions_remove_release(db_conn, args):
-	dry_mode = args.dry_mode
-	if args.release_sha256 is not None:
-		sha_256 = args.release_sha256
-		do_remove_release(db_conn, sha_256, args.verbose_mode, dry_mode)
-	elif args.release_version is not None:
-		version_list = args.release_version.split(",")
-		release_list = get_releases_by_versions(db_conn, version_list)
-		for release in release_list:
-			#print(release)
-			sha_256 = release["sha_256"]
-			do_remove_release(db_conn, sha_256, args.verbose_mode, dry_mode)
-			
-			#break
-			#do_remove_release(db_conn, sha_256, args.verbose_mode, dry_mode)
-		#release_version = args.release_version
 
 def do_action_enum_databases(db_conn, args):
 	db_list = db.databases(db_conn)
@@ -1234,9 +1117,6 @@ def main(args):
 		print("[!] health check failed")
 		return
 
-	#if args.list_releases:
-	#	do_sub_actions_list_releases(db_conn, args)
-
 	#if args.action_remove:
 	#	do_sub_actions_remove_release(db_conn, args)
 	#	return
@@ -1258,8 +1138,6 @@ if __name__ == '__main__':
 	* --export # do_db_export: --db <file.db>, -D <db_name>, -T <table_name>
 	"""
 	parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter, description="Mgmt tool - Cobalt Strike Stub Release Information Database (CSRID)")
-#	parser.add_argument('-L', '--list-releases', dest='list_releases', action='store_true', help="List Licensed Cobalt Strike (cobaltstrike.jar) Releases")
-#	parser.add_argument('-r', '--select-release', metavar='<sha256>', dest='release_sha256', help="Specify specific release")
 #	parser.add_argument('-V', '--select-version', metavar='<version>', dest='release_version', help="Select release(s) by version, supports format: 'x.y', 'x.', 'y.'" +
 #		"\n(separate with comma for multiple versions)" +
 #		"\n\n")
