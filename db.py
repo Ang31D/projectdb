@@ -1152,9 +1152,6 @@ if __name__ == '__main__':
 	parser.add_argument('--show', dest='inspect_query_template', action='store_true', help="Show query template description, use '-v' to show parameters" +
 		"\n\n")
 
-	"""
-		enumeration arguments (sqlmap)
-	"""
 	parser.add_argument('--dbs', dest='action_enum_databases', action='store_true', help="Enumerate databases; use '--count' to output num of databases and with '-v' outputs table count per database")
 	parser.add_argument('--tables', dest='action_enum_tables', action='store_true', help="Enumerate database tables; use '--count' to output num of tables and with '-v' outputs records count per table")
 	parser.add_argument('--columns', dest='action_enum_columns', action='store_true', help="Enumerate database table columns; use '-v' to show column count instead")
@@ -1163,15 +1160,13 @@ if __name__ == '__main__':
 	parser.add_argument('--count', dest='count', action='store_true', help="Output count")
 	parser.add_argument('--dump', dest='action_dump_table_entries', action='store_true', help="Dump database table entries")
 	parser.add_argument('--limit', metavar='<row_count>', dest='limit', type=int, help="Constrain the number of rows returned when using '--dump'")
+	#parser.add_argument('--offset', metavar='<offset>', dest='offset', type=int, help="Offset where '--limit' should start")
 	parser.add_argument('--offset', metavar='<offset>', dest='offset', type=int, help="Define the start of returned rows, use '--limit'")
 	parser.add_argument('-D', metavar='<DB>', dest='db_name', help="Select database")
 	parser.add_argument('-T', metavar='<TBL>', dest='table_name', help="Select database table(s)")
 	parser.add_argument('-C', metavar='<COL>', dest='column_name', help="Select database table column(s)" +
 		"\n\n")
 	
-	"""
-		manage database and content
-	"""
 	parser.add_argument('--create', metavar='<file.db>', dest='create_db', help="Create an empty database file")
 	parser.add_argument('--define', metavar='<file.sql>', dest='define_db', help="Define database through definition file")
 	parser.add_argument('--import', metavar='<file>', dest='db_import', help="Import from file, use '-T' to specify table")
@@ -1183,14 +1178,11 @@ if __name__ == '__main__':
 	parser.add_argument('--drop-table', action='store_true', dest='action_drop_table', help="Drop table from database, use '-T' to specify table" +
 		"\n\n")
 
-	"""
-		script arguments (nmap)
-	"""
 	#<Lua scripts> is a comma separated list of directories, script-files or script-categories
 	parser.add_argument('--script', metavar='<script_name>', dest='run_scripts', help="Run script(s) against the database; comma separated list")
 	parser.add_argument('--script-args', metavar='[<script_name>.]<script_arg>=\'<value>\'', dest='script_args', nargs='+', help="Provide arguments to script; space separated list.")
 	parser.add_argument('--script-help', metavar='<script_name>', dest='script_help', help="Show help about script. Use '-v' to show internal script information.")
-	parser.add_argument('--ext-script', metavar='<folder>', dest='extend_script', help="Adds another \"scripts\" directory repository; comma separated list" +
+	parser.add_argument('--ext-script', metavar='<folder>', dest='extend_script', help="Adds another \"scripts\" directory; comma separated list" +
 		"\n\n")
 	
 
