@@ -73,77 +73,140 @@ class init:
 		else:
 			data += "\n%s" % "[!] error: extention not found - '%s'" % "_internal.script"
 		return data
+
+	def _on_help(self):
+		# max 93 in length until new line (\n)
+		# ex.:         "\n --------------------------------------------------------------------------------------------
+		help_output = "  This script is used for searching through connected and attached database(s)."
+		help_output += "\n%s" % "  Use '--script-args' to pass options to the script."
+		#help_output += "\n\n%s" % "  * Options (required):"
+		help_output += "\n"
+
+		"""
+			'main' options; used for finding 'stuff'
+		"""
+		help_output += "\n%s" % "  * Options (optional):"
+		help_output += "\n%s" % "    find='<value>'          - value to search for; if omitted, match on any with look-for 'db', 'table' or 'column'"
+		help_output += "\n%s" % "    look-for='<type>'       - what to find; valid types: 'db', 'table', 'column', 'field' (default)"
+		help_output += "\n%s" % "    table='<table_name>'    - the table to search in"
+		help_output += "\n%s" % "    column='<column_name>'  - the column to match on; comma separated list"
+		help_output += "\n%s" % "    db-name='<db_name>'     - overrides default (\"main\") db which the table exists in"
+		help_output += "\n"
+		"""
+			'match' options; conditionalizes the 'find' match
+		"""
+		help_output += "\n%s" % "    * Match"
+		help_output += "\n%s" % "      match='<option>'      # comma separated list of options; available options:"
+		help_output += "\n%s" % "        multi               - match on multiple 'find' values; values separated by '|'"
+		help_output += "\n%s" % "        reverse             - negative match on 'find' value"
+		help_output += "\n"
+		"""
+			'format' options; controls the output
+		"""
+		help_output += "\n%s" % "    * Output Format"
+		help_output += "\n%s" % "      format='<option>'     # one option only; available options:"
+		help_output += "\n%s" % "        no-columns          - skip output of columns"
+		help_output += "\n%s" % "        wrap                - as 'no-columns' but does also wrap the output; replace char '\\n' with '\\n\\t'"
+		help_output += "\n"
+		"""
+			'extra' options;  to control the output
+		"""
+		help_output += "\n%s" % "    * Extra options"
+		help_output += "\n%s" % "      options='<option>'    # comma separated list of options; available options:"
+		help_output += "\n%s" % "        exclude-sysdbs      - exclude system tables during search"
+		help_output += "\n%s" % "        full-width          - does not strip field value when more then 100 in length"
+		help_output += "\n\n"
+		help_output += "\n%s" % " * Examples"
+		help_output += "\n%s" % "   --script search-db --script-args db=db/csrid.db options='exclude-sysdbs,full-width'"
+		help_output += "\n"
+		help_output += "\n%s" % "   Search on multi value match"
+		help_output += "\n%s" % "   %s" % ("-"*len("Search on multiple value match"))
+		help_output += "\n%s" % "   find records in 'hash_map' table that match on either 'gitee' or 'hybrid' in the 'comment' column"
+		help_output += "\n%s" % "   --script-args table=hash_map column=comment find='gitee|hybrid' match=multi"
+		help_output += "\n"
+		help_output += "\n%s" % "   find records in 'hash_map' table that does not match on 'jsonl' and 'virustotal' in the 'comment' column"
+		help_output += "\n%s" % "   --script-args table=hash_map column=comment find='jsonl|virustotal' match=multi,reverse"
+		return help_output
+	
 	def help(self):
 		verbose_mode = False
 		if "_internal.verbose_mode" in self._extend:
 			verbose_mode = self._extend["_internal.verbose_mode"]
 
-		output = self.name
-		output += "\nCategories: %s" % ' '.join(self.categories)
-		output += "\nRequirements: %s" % ' '.join(self.requirements)
-		print(output)
+		help_output = self.name
 		if verbose_mode:
-			print("-"*88)
-			print(self._script_internals())
-			print("-"*88)
-		else:
-			print("%s" % __file__)
-			pass
-		output = "  %s" % self.description
-		print(output)
+			help_output += "\n%s" % ("-"*88)
+			help_output += "\n%s" % self._script_internals()
+			help_output += "\n%s" % ("-"*88)
+		
+		help_output += "\n  %s" % self.description
 		# max 93 in length until new line (\n)
-		# ex.:             "\n --------------------------------------------------------------------------------------------
-		detailed_output  = "\n  Search database"
-		detailed_output += "\n  Use '--script-args' to pass options to this script."
-		detailed_output += "\n\n  * Options (required):"
-		#detailed_output += "\n    db='<file.db>'          - the database (.db) file to connect to"
-		detailed_output += "\n"
-		detailed_output += "\n  * Options (optional):"
-		detailed_output += "\n    find='<value>'          - value to search for; if omitted match on any with look-for: 'db', 'table' or 'column'"
-		detailed_output += "\n    look-for='<type>'       - what to find; valid types: 'db', 'table', 'column', 'field' (default)"
-		detailed_output += "\n    table='<table_name>'    - the table to search in"
-		detailed_output += "\n    column='<column_name>'  - the column to match on; comma separated list"
-		#detailed_output += "\n    match='reverse'         - negative match on 'find' value"
-		#detailed_output += "\n    match='multi'           - match on multiple values; separated 'find' values by '|'"
-		#detailed_output += "\n    exclude='sysdbs'        - exclude sysdbs during search"
-		detailed_output += "\n    db-name='<db_name>'     - overrides default (\"main\") db which the table exists in"
-		#detailed_output += "\n    out='full-width'        - does not strip field value when more then 100 in length"
-		detailed_output += "\n"
-		detailed_output += "\n    * Match options"
-		detailed_output += "\n      match='<option>'      # comma separated list of options; available options:"
-		detailed_output += "\n        multi       - match on multiple 'find' values; values separated by '|'"
-		detailed_output += "\n        reverse     - negative match on 'find' value"
-		detailed_output += "\n"
-		detailed_output += "\n    * Extra options"
-		detailed_output += "\n      options='<option>'    # comma separated list of options; available options:"
-		detailed_output += "\n        exclude-sysdbs   - exclude system tables during search"
-		detailed_output += "\n        full-width       - does not strip field value when more then 100 in length"
-		detailed_output += "\n\n"
-		detailed_output += "\n * Examples"
-		detailed_output += "\n   --script search-db --script-args db=db/csrid.db options='exclude-sysdbs,full-width'"
-		detailed_output += "\n"
-		detailed_output += "\n   Search on multi value match"
-		detailed_output += "\n   %s" % ("-"*len("Search on multiple value match"))
-		detailed_output += "\n   find records in 'hash_map' table that match on either 'gitee' or 'hybrid' in the 'comment' column"
-		detailed_output += "\n   --script-args table=hash_map column=comment find='gitee|hybrid' match=multi"
-		detailed_output += "\n"
-		detailed_output += "\n   find records in 'hash_map' table that does not match on 'jsonl' and 'virustotal' in the 'comment' column"
-		detailed_output += "\n   --script-args table=hash_map column=comment find='jsonl|virustotal' match=multi,reverse"
-
-
-		print(detailed_output)
+		# ex.:         "\n --------------------------------------------------------------------------------------------
+		help_output += "\n\n"
+		help_output += self._on_help()
+		print(help_output)
 
 	def run(self, args={}):
 		if "sqlite.db_conn" not in self._extend:
 			print("[!] error: %s; missing 'sqlite.db_conn' extention" % self.name)
 			return
 
-		# // check requirements
-		#if 'db' not in args:
-		#	print("[!] error: %s; required 'db' option missing" % self.name)
-		#	return
+		self._on_run(args)
 
-		self._search_db(args)
+	def _on_run(self, args):
+		verbose_mode = False
+		if "_internal.verbose_mode" in self._extend:
+			verbose_mode = self._extend["_internal.verbose_mode"]
+
+		search_value = None
+		if "find" in args:
+			search_value = args["find"]["value"]
+
+		#exclude_sysdbs = False
+		#if "exclude" in args and "sysdbs" == args["exclude"]["value"]:
+		#	exclude_sysdbs = True
+		exclude_sysdbs = False
+		if "options" in args:
+			option_args = args["options"]["value"].split(",")
+			exclude_sysdbs = "exclude-sysdbs" in option_args
+
+		db_name = "main" # default database
+		db_name = None
+		if 'db-name' in args:
+			db_name = args['db-name']['value']
+		
+		search_table = None
+		if 'table' in args:
+			search_table = args['table']['value']
+
+		look_for = "field"
+		if "look-for" in args:
+			look_for = args["look-for"]["value"]
+
+		#db_file = args['db']['value']
+		#db_conn = self._connect_db(db_file)
+		db_conn = self._extend["sqlite.db_conn"]
+		if db_conn is None:
+			return
+
+		if   "db" == look_for:
+			self._search_db_for_db_name(db_conn, search_value, exclude_sysdbs)
+		elif "table" == look_for:
+			self._search_db_for_table(db_conn, db_name, search_value, exclude_sysdbs)
+		elif "column" == look_for:
+			self._search_db_for_column(db_conn, db_name, search_value, exclude_sysdbs, args)
+		elif "field" == look_for:
+			if search_value is None:
+				print("[!] error: %s; required 'find' option missing during '%s' look-up" % (self.name, look_for))
+				return
+			if search_table is None:
+				self._search_db_for_record_field(db_conn, db_name, search_value, exclude_sysdbs, args)
+			else:
+				self._search_db_for_record_in_table(db_conn, db_name, search_table, search_value, args)
+		else:
+			print("[!] warning: %s; look-for type not supported - '%s'" % (self.name, look_for))
+
+		db.close(db_conn)
 
 	def _connect_db(self, db_file):
 		if not db.db_exists(db_file):
@@ -205,7 +268,9 @@ class init:
 		match_found = False
 		table_list = []
 		for table in tables:
+			db_name = table[0]
 			table_name = table[1]
+
 			if table_name in db.SYSDBS:
 				if exclude_sysdbs:
 					continue
@@ -254,17 +319,22 @@ class init:
 			print("[!] error: %s; missing 'find' option" % self.name)
 			return
 
-		#out_full_width = False
-		#if "out" in args and "full-width" == args["out"]["value"]:
-		#	out_full_width = True
+		# // script options
+		# ----------------------------------------------------------------
 		out_full_width = False
+		tablefmt='github'
 		if "options" in args:
 			option_args = args["options"]["value"].split(",")
 			out_full_width = "full-width" in option_args
+		
+		out_format = None
+		if "format" in args:
+			out_format = args["format"]["value"]
+		# ----------------------------------------------------------------
 
-		headers = ['db', 'table', 'column', 'value']
 		table_list = []
 		for table in tables:
+			db_name = table[0]
 			table_name = table[1]
 			if table_name in db.SYSDBS and exclude_sysdbs:
 				continue
@@ -289,14 +359,14 @@ class init:
 						column_value = "%s...<STRIPPED>" % column_value[:100]
 					table_list.append([db_name, table_name, column_name, column_value])
 
-		print(tabulate(table_list, headers=headers, tablefmt='github'))
+		headers = ['db', 'table', 'column', 'value']
+		self._output_table(table_list, headers, out_format)
 
 	def _search_db_for_record_in_table(self, db_conn, db_name, table_name, find_value, args):
 		tables = db.tables(db_conn, db_name, None)
 
-		#out_full_width = False
-		#if "out" in args and "full-width" == args["out"]["value"]:
-		#	out_full_width = True
+		# // script options
+		# ----------------------------------------------------------------
 		out_full_width = False
 		if "options" in args:
 			option_args = args["options"]["value"].split(",")
@@ -313,12 +383,18 @@ class init:
 			reverse_match = "reverse" in match_args
 			multi_match = "multi" in match_args
 
-		headers = ['db', 'table', 'column', 'value']
+		out_format = None
+		if "format" in args:
+			out_format = args["format"]["value"]
+		# ----------------------------------------------------------------
+
+		#headers = ['db', 'table', 'column', 'value']
 		table_list = []
 		if not db.table_exists_in_db(db_conn, db_name, table_name):
 			print("[!] warning: %s; table not found - '%s'" % (self.name, table_name))
 			return
 
+		
 		table_columns = db.table_columns(db_conn, db_name, table_name)
 		headers = table_columns
 
@@ -363,59 +439,22 @@ class init:
 			elif reverse_match:
 				table_list.append(row_list)
 
-		print(tabulate(table_list, headers=headers, tablefmt='github'))
+		self._output_table(table_list, headers, out_format)
 
-	def _search_db(self, args):
-		verbose_mode = False
-		if "_internal.verbose_mode" in self._extend:
-			verbose_mode = self._extend["_internal.verbose_mode"]
+	def _output_table(self, table_list, headers, out_format=None):
+		tablefmt='github'
+		wrap_data = False
 
-		search_value = None
-		if "find" in args:
-			search_value = args["find"]["value"]
-
-		#exclude_sysdbs = False
-		#if "exclude" in args and "sysdbs" == args["exclude"]["value"]:
-		#	exclude_sysdbs = True
-		exclude_sysdbs = False
-		if "options" in args:
-			option_args = args["options"]["value"].split(",")
-			exclude_sysdbs = "exclude-sysdbs" in option_args
-
-		db_name = "main" # default database
-		if 'db-name' in args:
-			db_name = args['db-name']['value']
+		if out_format is not None:
+			if out_format == "no-columns" or out_format == "wrap":
+				tablefmt='plain'
+				headers = []
+			if out_format == "wrap":
+				wrap_data = True
 		
-		search_table = None
-		if 'table' in args:
-			search_table = args['table']['value']
+		out_data = tabulate(table_list, headers=headers, tablefmt=tablefmt)
 
-		look_for = "field"
-		if "look-for" in args:
-			look_for = args["look-for"]["value"]
-
-		#db_file = args['db']['value']
-		#db_conn = self._connect_db(db_file)
-		db_conn = self._extend["sqlite.db_conn"]
-		if db_conn is None:
-			return
-
-
-		if   "db" == look_for:
-			self._search_db_for_db_name(db_conn, search_value, exclude_sysdbs)
-		elif "table" == look_for:
-			self._search_db_for_table(db_conn, db_name, search_value, exclude_sysdbs)
-		elif "column" == look_for:
-			self._search_db_for_column(db_conn, db_name, search_value, exclude_sysdbs, args)
-		elif "field" == look_for:
-			if search_value is None:
-				print("[!] error: %s; required 'find' option missing during '%s' look-up" % (self.name, look_for))
-				return
-			if search_table is None:
-				self._search_db_for_record_field(db_conn, db_name, search_value, exclude_sysdbs, args)
-			else:
-				self._search_db_for_record_in_table(db_conn, db_name, search_table, search_value, args)
+		if wrap_data:
+			print(out_data.replace("\\n", "\n\t"))
 		else:
-			print("[!] warning: %s; look-for type not supported - '%s'" % (self.name, look_for))
-
-		db.close(db_conn)
+			print(out_data)

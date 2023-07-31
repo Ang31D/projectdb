@@ -16,7 +16,7 @@ def get_db_file(args):
 		return args.override_default_db_file
 
 	script_dir = os.path.dirname(os.path.realpath(__file__))
-	db_file = config.DB_SQLITE_FILE
+	db_file = config.DEFAULT_SQLITE_DB
 	return os.path.join(script_dir, db_file)
 
 def do_db_health_check(db_file):
@@ -981,7 +981,6 @@ def do_action_run_script(db_conn, args):
 			script_module.extend({"_internal.verbose_mode": args.verbose_mode})
 			if "sqlite" in script_module.requirements:
 				script_module.extend({"sqlite.db_conn": db_conn})
-				#script_module.extend({"sqlite": {"db_conn", db_conn}})
 			if "script-repo" in script_module.requirements:
 				script_module.extend({"script.repo-dir": repo_dir})
 			module_args = run_script_args[script["name"]]["args"]
@@ -1007,7 +1006,7 @@ def main(args):
 	db_file = get_db_file(args)
 	db_conn = connect_db(db_file, args)
 	if db_conn is None:
-		print("[!] error: database failed to connect - '%s'" % db_file)
+		#print("[!] error: database failed to connect - '%s'" % db_file)
 		return
 
 	if args.run_scripts is not None:
@@ -1140,9 +1139,6 @@ if __name__ == '__main__':
 	* --export # do_db_export: --db <file.db>, -D <db_name>, -T <table_name>
 	"""
 	parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter, description="Mgmt tool - Cobalt Strike Stub Release Information Database (CSRID)")
-#	parser.add_argument('-V', '--select-version', metavar='<version>', dest='release_version', help="Select release(s) by version, supports format: 'x.y', 'x.', 'y.'" +
-#		"\n(separate with comma for multiple versions)" +
-#		"\n\n")
 	
 	parser.add_argument('--db', metavar='<file.db>', dest='override_default_db_file', help="Connect to database, override default <DB_SQLITE_FILE> ('config.py')")
 	parser.add_argument('-A', '--attach-dbs', metavar='[<db_name>:]<file.db>[,...]', dest='attach_db', help="Attach database file with defined name, attach multiple dbs separated by comma" +
@@ -1162,7 +1158,6 @@ if __name__ == '__main__':
 	parser.add_argument('--count', dest='count', action='store_true', help="Output count")
 	parser.add_argument('--dump', dest='action_dump_table_entries', action='store_true', help="Dump database table entries")
 	parser.add_argument('--limit', metavar='<row_count>', dest='limit', type=int, help="Constrain the number of rows returned when using '--dump'")
-	#parser.add_argument('--offset', metavar='<offset>', dest='offset', type=int, help="Offset where '--limit' should start")
 	parser.add_argument('--offset', metavar='<offset>', dest='offset', type=int, help="Define the start of returned rows, use '--limit'")
 	parser.add_argument('-D', metavar='<DB>', dest='db_name', help="Select database")
 	parser.add_argument('-T', metavar='<TBL>', dest='table_name', help="Select database table(s)")
@@ -1181,9 +1176,10 @@ if __name__ == '__main__':
 		"\n\n")
 
 	#<Lua scripts> is a comma separated list of directories, script-files or script-categories
-	parser.add_argument('--script', metavar='<script_name>', dest='run_scripts', help="Run script(s) against the database; comma separated list")
+	#parser.add_argument('--script', metavar='<script_name>', dest='run_scripts', help="Run script(s) against the database; comma separated list")
+	parser.add_argument('--script', metavar='<script_name>', dest='run_scripts', help="Runs a script using the comma-separated list of filenames to interact with the database(s).")
 	parser.add_argument('--script-args', metavar='[<script_name>.]<script_arg>=\'<value>\'', dest='script_args', nargs='+', help="Provide arguments to script; space separated list.")
-	parser.add_argument('--script-help', metavar='<script_name>', dest='script_help', help="Show help about script. Use '-v' to show internal script information.")
+	parser.add_argument('--script-help', metavar='<script_name>', dest='script_help', help="Show help about script. Use '-v' to show internal script information (useful for debugging), combine with '--script-args' to see how options are parsed.")
 	parser.add_argument('--ext-script', metavar='<folder>', dest='extend_script', help="Adds another \"scripts\" directory; comma separated list" +
 		"\n\n")
 	

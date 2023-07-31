@@ -48,7 +48,7 @@ class init:
 			elif parent_dir_name not in self._categories:
 				self._categories.append(parent_dir_name)
 
-	def _script_internals(self):
+	def _help_script_internals(self):
 		data = ""
 		if "_internal.script" in self._extend:
 			data = "[INTERNALS]"
@@ -72,41 +72,73 @@ class init:
 		else:
 			data += "\n%s" % "[!] error: extention not found - '%s'" % "_internal.script"
 		return data
+	def _on_help(self):
+		help_output  = "  Lists available scripts that can be executed through the '--script' argument."
+		help_output += "\n  Use '--script-help <script>' to view help of each script."
+		help_output += "\n"
+		help_output += "\n  * Options:"
+		help_output += "\n    find='<value>'  - (optional) search for <value>, match on script name or description"
+		help_output += "\n"
+		help_output += "\n  To show further details, use the 'show' script option:"
+		help_output += "\n    --script-args show='<option>[,<option>]'"
+		help_output += "\n    * Options:"
+		help_output += "\n      category    - shows the categories for the script"
+		help_output += "\n      script-path - shows the script path"
+		help_output += "\n\n  To filter based on category, use --script-args category=<category>[,<category>]"
+		help_output += "\n\n  To list by categories, use --script-args list-by=category."
+		help_output += "\n      To show the script in the category, use --script-args show='category-script'"
+		return help_output
 	def help(self):
+#		verbose_mode = False
+#		if "_internal.verbose_mode" in self._extend:
+#			verbose_mode = self._extend["_internal.verbose_mode"]
+#
+#		output = self.name
+#		output += "\nCategories: %s" % ' '.join(self.categories)
+#		output += "\nRequirements: %s" % ' '.join(self.requirements)
+#		print(output)
+#		if verbose_mode:
+#			print("-"*88)
+#			print(self._help_script_internals())
+#			print("-"*88)
+#		else:
+#			print("%s" % __file__)
+#			pass
+#		output = "  %s" % self.description
+#		print(output)
+#		# max 93 in length until new line (\n)
+#		# ex.:             "\n --------------------------------------------------------------------------------------------
+#		detailed_output  = "\n  Lists available scripts that can be executed through the '--script' argument."
+#		detailed_output += "\n  Use '--script-help <script>' to view help of each script."
+#		detailed_output += "\n"
+#		detailed_output += "\n  * Options:"
+#		detailed_output += "\n    find='<value>'  - (optional) search for <value>, match on script name or description"
+#		detailed_output += "\n"
+#		detailed_output += "\n  To show further details, use the 'show' script option:"
+#		detailed_output += "\n    --script-args show='<option>[,<option>]'"
+#		detailed_output += "\n    * Options:"
+#		detailed_output += "\n      category    - shows the categories for the script"
+#		detailed_output += "\n      script-path - shows the script path"
+#		detailed_output += "\n\n  To filter based on category, use --script-args category=<category>[,<category>]"
+#		detailed_output += "\n\n  To list by categories, use --script-args list-by=category."
+#		detailed_output += "\n      To show the script in the category, use --script-args show='category-script'"
+#		print(detailed_output)
 		verbose_mode = False
 		if "_internal.verbose_mode" in self._extend:
 			verbose_mode = self._extend["_internal.verbose_mode"]
 
-		output = self.name
-		output += "\nCategories: %s" % ' '.join(self.categories)
-		output += "\nRequirements: %s" % ' '.join(self.requirements)
-		print(output)
+		help_output = self.name
 		if verbose_mode:
-			print("-"*88)
-			print(self._script_internals())
-			print("-"*88)
-		else:
-			print("%s" % __file__)
-			pass
-		output = "  %s" % self.description
-		print(output)
+			help_output += "\n%s" % ("-"*88)
+			help_output += "\n%s" % self._help_script_internals()
+			help_output += "\n%s" % ("-"*88)
+		
+		help_output += "\n  %s" % self.description
 		# max 93 in length until new line (\n)
-		# ex.:             "\n --------------------------------------------------------------------------------------------
-		detailed_output  = "\n  Lists available scripts that can be executed through the '--script' argument."
-		detailed_output += "\n  Use '--script-help <script>' to view help of each script."
-		detailed_output += "\n"
-		detailed_output += "\n  * Options:"
-		detailed_output += "\n    find='<value>'  - (optional) search for <value>, match on script name or description"
-		detailed_output += "\n"
-		detailed_output += "\n  To show further details, use the 'show' script option:"
-		detailed_output += "\n    --script-args show='<option>[,<option>]'"
-		detailed_output += "\n    * Options:"
-		detailed_output += "\n      category    - shows the categories for the script"
-		detailed_output += "\n      script-path - shows the script path"
-		detailed_output += "\n\n  To filter based on category, use --script-args category=<category>[,<category>]"
-		detailed_output += "\n\n  To list by categories, use --script-args list-by=category."
-		detailed_output += "\n      To show the script in the category, use --script-args show='category-script'"
-		print(detailed_output)
+		# ex.:         "\n --------------------------------------------------------------------------------------------
+		help_output += "\n\n"
+		help_output += self._on_help()
+		print(help_output)
 
 	def run(self, args={}):
 		if "script.repo-dir" in self._extend:
@@ -244,7 +276,7 @@ class init:
 			module = lib.get_script_module(script["module_path"])
 			if module is None:
 				continue
-			script_module = module.script()
+			script_module = module.init()
 			#print(script_module.categories)
 			for category in script_module.categories:
 				if len(category_filter) > 0:

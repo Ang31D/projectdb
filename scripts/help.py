@@ -2,15 +2,11 @@ import core.script_lib as lib
 import os
 from tabulate import tabulate
 
-"""
-list available scripts
-"""
-
 class init:
 	def __init__(self):
 		self.name = '.'.join(os.path.basename(__file__).split(".")[:-1])
-		self.description = "Help on how to use the extended script feature"
-		self.requirements = [""]
+		self.description = "Shows help on how to use the extended script feature"
+		self.requirements = []
 		self._categories = ["help"]
 		self._extend = {}
 		self._set_categories()
@@ -43,7 +39,7 @@ class init:
 			elif parent_dir_name not in self._categories:
 				self._categories.append(parent_dir_name)
 
-	def _script_internals(self):
+	def _help_script_internals(self):
 		data = ""
 		if "_internal.script" in self._extend:
 			data = "[INTERNALS]"
@@ -67,46 +63,58 @@ class init:
 		else:
 			data += "\n%s" % "[!] error: extention not found - '%s'" % "_internal.script"
 		return data
+
 	def help(self):
 		verbose_mode = False
 		if "_internal.verbose_mode" in self._extend:
 			verbose_mode = self._extend["_internal.verbose_mode"]
 
-		output = self.name
-		output += "\nCategories: %s" % ' '.join(self.categories)
-		output += "\nRequirements: %s" % ' '.join(self.requirements)
-		print(output)
+		help_output = self.name
 		if verbose_mode:
-			print("-"*88)
-			print(self._script_internals())
-			print("-"*88)
-		else:
-			print("%s" % __file__)
-			pass
-		output = "  %s" % self.description
-		print(output)
-		detailed_output  = "\n  Shows help on how to use the extended script feature."
-		detailed_output += "\n  This is done through the '--script' argument."
-		detailed_output += "\n  Combine with '--script-args' to pass arguments to the script."
-		detailed_output += "\n  Use '--script-help <script>' to get help on a specific script."
-		print(detailed_output)
+			help_output += "\n%s" % ("-"*88)
+			help_output += "\n%s" % self._help_script_internals()
+			help_output += "\n%s" % ("-"*88)
+		
+		help_output += "\n  %s" % self.description
+		# max 93 in length until new line (\n)
+		# ex.:         "\n --------------------------------------------------------------------------------------------
+		help_output += "\n\n"
+		help_output += self._on_help()
+		print(help_output)
+
+	def _on_help(self):
+		help_output  = "  Shows help on how to use the extended script feature."
+		help_output += "\n  This is done through the '--script' argument, combine with '--script-args' to pass"
+		help_output += "\n  options to the script."
+		help_output += "\n  Use '--script-help <script>' to get help on a specific script."
+		help_output += "\n"
+		help_output += "\n  Use '-v' to show internal script information (useful for debugging), combine with"
+		help_output += "\n  '--script-args' to see how they are rendered."
+		help_output += "\n"
+		help_output += "\n  Use '-v' to show internal script information (useful for debugging), combine with"
+		return help_output
 
 	def run(self, args={}):
-		self.show_help()
+		self._on_run()
 
-	def show_help(self):
+	def _on_run(self):
+		# max 93 in length until new line (\n)
+		# ex.:             "\n --------------------------------------------------------------------------------------------
 		#detailed_output  = "\n* being printed, it is also saved in the Nmap registry so other Nmap scripts can use it. That"
 		# ^-- examples of max length, taken from: nmap --script-help smb-brute
 		#detailed_output  = "\n* Extended script feature"
-		detailed_output  = "Extended script feature\n%s" % ("-"*len("Extended script feature"))
-		detailed_output += "\n\n  The '--script <script>' argument defines which script to run."
-		detailed_output += "\n  Combine with '--script-args <arg-format> [<arg-format> ...]' to pass arguments to the script."
-		detailed_output += "\n  The <arg-format> is formatted as follows: script.arg=\'<value>\'"
-		detailed_output += "\n  Note: if only one script is passed to the '--script' argument, the <arg-format> can be specified as: arg=\'<value>\'"
-		detailed_output += "\n"
-		detailed_output += "\n  Use '--script-help <script>' to get help on a specific script."
-		detailed_output += "\n"
-		detailed_output += "\n  * Examples"
-		detailed_output += "\n    - List available scripts"
-		detailed_output += "\n      --script list [--script-args show='category']"
-		print(detailed_output)
+		help_output  = "Extended script feature\n%s" % ("-"*len("Extended script feature"))
+		help_output += "\n\n  The '--script <script>' argument defines which script to run."
+		help_output += "\n  Combine with '--script-args <arg-format> [<arg-format> ...]' to pass arguments to the script."
+		help_output += "\n  The <arg-format> is formatted as follows: script.arg=\'<value>\'"
+		help_output += "\n  Note: if only one script is passed to the '--script' argument, the <arg-format> can be specified as: arg=\'<value>\'"
+		help_output += "\n"
+		help_output += "\n  Use '--script-help <script>' to get help on a specific script."
+		help_output += "\n"
+		help_output += "\n  * Examples"
+		help_output += "\n    - List available scripts"
+		help_output += "\n      --script list [--script-args show='category']"
+		help_output += "\n"
+		help_output += "\n%s" % "  * Show Options (optional):"
+		help_output += "\n%s" % "    examples          - Shows examples"
+		print(help_output)
