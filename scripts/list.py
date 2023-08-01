@@ -32,7 +32,8 @@ class init(Script):
 		help_output += "\n    --script-args show='<option>[,<option>]'"
 		help_output += "\n    * Options:"
 		help_output += "\n      category    - shows the categories for the script"
-		help_output += "\n      script-path - shows the script path"
+		help_output += "\n      author      - shows the author of the script"
+		help_output += "\n      script-path - shows the script location"
 		help_output += "\n"
 		help_output += "\n  To filter based on category, use --script-args category=<category>[,<category>]"
 		help_output += "\n"
@@ -41,12 +42,6 @@ class init(Script):
 		return help_output
 
 	def _on_run(self, args):
-		#if "script.repo-dir" in self._extend:
-		#	self._script_repo_dir = self._extend["script.repo-dir"]
-		#else:
-		#	print("[!] error: extention not found - '%s'" % "script.repo-dir")
-		#	return
-
 		if "list-by" in args and args["list-by"]["value"] == "category":
 			self._list_by_categories(args)
 		else:
@@ -98,10 +93,14 @@ class init(Script):
 			if len(show_options) > 0:
 				module = lib.get_script_module(script["module_path"])
 				if "category" in show_options:
-					script_item.append("#")
+					script_item.append(":")
 					script_item.append("%s" % ', '.join(script_module.categories))
-					#print(script)
+				if "author" in show_options:
+					script_item.append("#")
+					script_item.append("[%s]" % script["author"])
 				if "script-path" in show_options:
+					if "author" not in show_options:
+						script_item.append("#")
 					script_item.append("(%s)" % script["path"])
 			if len(category_filter) > 0:
 				found_category = False
@@ -116,6 +115,8 @@ class init(Script):
 				if search_for.lower() in script["name"].lower():
 					found_match = True
 				if search_for.lower() in script_desc.lower():
+					found_match = True
+				if search_for.lower() in script["author"].lower():
 					found_match = True
 				for category in script_module.categories:
 					if search_for.lower() in category.lower():
