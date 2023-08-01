@@ -62,7 +62,7 @@ def _get_script_author(script_path):
 		content = f.read()
 		if "class %s:" % SCRIPT_CLASS_NAME not in content:
 			return ''
-		if "self.requirements" in content and "def __init__(self" in content:
+		if "self.author" in content and "def __init__(self" in content:
 			init_pos_index = content.index("def __init__(self")
 			content = content[init_pos_index:]
 			pattern = r'self.author ?= ?"([^"]+)'
@@ -84,6 +84,7 @@ def _get_script_description(script_path):
 			if len(script_arg_list) == 1:
 				self_desc = script_arg_list[0]
 	return self_desc
+
 def _get_repo_from_dir(repo_dir):
 	repo_list = {}
 
