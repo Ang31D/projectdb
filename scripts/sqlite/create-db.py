@@ -1,13 +1,6 @@
 from Script import Script
 import core.sqlite_helper as db
 import os
-from tabulate import tabulate
-
-"""
-create an empty database file
-
---script create-db --script-args file=<file.db>
-"""
 
 class init(Script):
 	def __init__(self):
@@ -29,16 +22,6 @@ class init(Script):
 		help_output += "\n      file='<file.db>'  - the (.db) file to create as the database"
 		return help_output
 
-#	def run(self, args={}):
-#		if "sqlite.db_conn" not in self._extend:
-#			print("[!] error: %s; missing 'sqlite.db_conn' extention" % self.name)
-#			return
-#
-#		if 'file' not in args:
-#			print("[!] error: %s; missing 'file' option" % self.name)
-#			return
-#
-#		self._create_db(args)
 	def _on_run(self, args):
 		if 'file' not in args:
 			print("[!] error: %s; missing 'file' option" % self.name)
