@@ -32,7 +32,7 @@ class init(Script):
 			print("[!] error: %s; missing 'table' option" % self.name)
 			return
 
-		self._truncate_table(args)
+		self._drop_table(args)
 
 	def _connect_db(self, db_file):
 		if not db.db_exists(db_file):
@@ -44,7 +44,7 @@ class init(Script):
 			return None
 		return db_conn
 
-	def _truncate_table(self, args):
+	def _drop_table(self, args):
 		verbose_mode = False
 		if "_internal.verbose_mode" in self._extend:
 			verbose_mode = self._extend["_internal.verbose_mode"]
