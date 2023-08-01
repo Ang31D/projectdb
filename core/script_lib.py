@@ -33,7 +33,9 @@ def _get_script_categories(script_path):
 			match_list = re.findall(pattern, content)
 			if len(match_list) > 0:
 				for cat in match_list:
-					self_cat.append(cat.replace('"', ''))
+					cat_name = cat.replace('"', '')
+					if cat_name not in self_cat:
+						self_cat.append(cat_name)
 	return self_cat
 def _get_script_requirements(script_path):
 	if not os.path.isfile(script_path):
@@ -50,8 +52,10 @@ def _get_script_requirements(script_path):
 			pattern = r'self.requirements.append\("([^\)]+)'
 			match_list = re.findall(pattern, content)
 			if len(match_list) > 0:
-				for cat in match_list:
-					self_req.append(cat.replace('"', ''))
+				for req in match_list:
+					req_name = req.replace('"', '')
+					if req_name not in self_req:
+						self_req.append(req_name)
 	return self_req
 def _get_script_author(script_path):
 	if not os.path.isfile(script_path):
