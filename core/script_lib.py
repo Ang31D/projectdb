@@ -8,7 +8,8 @@ import importlib
 
 exclude_items = ["__pycache__", "__init__"]
 
-SCRIPT_CLASS_NAME = "init"
+#SCRIPT_CLASS_NAME = "init"
+SCRIPT_CLASS_NAME = "init(Script)"
 
 def root_dir():
 	core_dir = os.path.dirname(os.path.realpath(__file__))
@@ -20,47 +21,61 @@ def _get_script_categories(script_path):
 	if not os.path.isfile(script_path):
 		return ''
 
-	self_cat = ''
+	self_cat = []
 	with open(script_path, 'r') as f:
 		content = f.read()
-		#if "class script:" not in content:
 		if "class %s:" % SCRIPT_CLASS_NAME not in content:
 			return ''
 		if "self._categories" in content and "def __init__(self" in content:
 			init_pos_index = content.index("def __init__(self")
 			content = content[init_pos_index:]
-			pattern = r'self._categories ?= ?\[ ?"([^\]]+)'
-			script_arg_list = re.findall(pattern, content)
-			if len(script_arg_list) == 1:
-				self_cat = script_arg_list[0]
-				self_cat = self_cat.replace('"', '')
+			pattern = r'self._categories.append\("([^\)]+)'
+			match_list = re.findall(pattern, content)
+			if len(match_list) > 0:
+				for cat in match_list:
+					self_cat.append(cat.replace('"', ''))
 	return self_cat
 def _get_script_requirements(script_path):
 	if not os.path.isfile(script_path):
 		return ''
 
-	self_req = ''
+	self_req = []
 	with open(script_path, 'r') as f:
 		content = f.read()
-		#if "class script:" not in content:
 		if "class %s:" % SCRIPT_CLASS_NAME not in content:
 			return ''
 		if "self.requirements" in content and "def __init__(self" in content:
 			init_pos_index = content.index("def __init__(self")
 			content = content[init_pos_index:]
-			pattern = r'self.requirements ?= ?\[ ?"([^\]]+)'
-			script_arg_list = re.findall(pattern, content)
-			if len(script_arg_list) == 1:
-				self_req = script_arg_list[0]
-				self_req = self_req.replace('"', '')
+			pattern = r'self.requirements.append\("([^\)]+)'
+			match_list = re.findall(pattern, content)
+			if len(match_list) > 0:
+				for cat in match_list:
+					self_req.append(cat.replace('"', ''))
 	return self_req
+def _get_script_author(script_path):
+	if not os.path.isfile(script_path):
+		return ''
+
+	self_author = ''
+	with open(script_path, 'r') as f:
+		content = f.read()
+		if "class %s:" % SCRIPT_CLASS_NAME not in content:
+			return ''
+		if "self.requirements" in content and "def __init__(self" in content:
+			init_pos_index = content.index("def __init__(self")
+			content = content[init_pos_index:]
+			pattern = r'self.author ?= ?"([^"]+)'
+			match_list = re.findall(pattern, content)
+			if len(match_list) == 1:
+				self_author = match_list[0].strip()
+	return self_author
 def _get_script_description(script_path):
 	self_desc = ''
 	if not os.path.isfile(script_path):
 		return self_desc
 	with open(script_path, 'r') as f:
 		content = f.read()
-		#if "self.description" in content and "def __init__(self" in content and "class script:" in content:
 		if "self.description" in content and "def __init__(self" in content and "class %s:" % SCRIPT_CLASS_NAME in content:
 			init_pos_index = content.index("def __init__(self")
 			content = content[init_pos_index:]
@@ -122,9 +137,10 @@ def _get_repo_from_dir(repo_dir):
 					print("[!] SOMETHING WENT WRONG")
 
 			script_item = {}
-			script_item["type"] = script_type
 			script_item["name"] = file_basename
 			script_item["description"] = _get_script_description(file_path)
+			script_item["author"] = _get_script_author(file_path)
+			script_item["type"] = script_type
 			script_item["categories"] = _get_script_categories(file_path)
 			script_item["requirements"] = _get_script_requirements(file_path)
 			script_item["filename"] = file_name

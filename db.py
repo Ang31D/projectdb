@@ -901,7 +901,6 @@ def do_action_script_help(args):
 		return
 
 	help_scripts = {}
-	#script_repo = lib.repos()
 	extend_script = None
 	repo_dir = lib_root_dir
 	if args.extend_script is not None:
@@ -911,30 +910,20 @@ def do_action_script_help(args):
 	
 	help_script = lib.parse_script_help(args.script_help)
 	help_script_args = lib.parse_raw_script_args(args.script_help, args.script_args)
-#	print(help_script)
 	for script_name in help_script:
-#		print("script_name: %s" % script_name)
-		#script = lib.get_script_from_repo_dir(script_name, repo_dir)
-		#script = lib.get_script_from_repo(script_name, script_repo)
 		script_definition = lib.get_script_from_repo(script_name, script_repo)
 		if script_definition is None:
 			print("[!] warning: failed to get script by name - '%s'" % script_name)
 			continue
-#		print("********** output script **********")
-#		print(script)
 		script_path = script_definition["path"]
-		#script_path = lib.get_script_path_by_name(script_name)
-#		print(script_path)
 		if script_path in script_repo:
-			#module_path = lib.script_path_as_module_path(script_path)
 			module_path = script_definition["module_path"]
 			if module_path is None:
 				print("[!] warning: failed to convert script as module path - '%s'" % script_path)
 				continue
 			script_module = lib.get_script_module(module_path)
-			#script_module = module.script()
 			script = script_module.init()
-			script.extend({"_internal.script": script_definition})
+			script.extend({"_internal.script-definition": script_definition})
 			script.extend({"_internal.script.args": help_script_args})
 			script.extend({"_internal.verbose_mode": args.verbose_mode})
 			script.help()
