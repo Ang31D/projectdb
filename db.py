@@ -1110,15 +1110,6 @@ def main(args):
 
 
 if __name__ == '__main__':
-	""" Verify features:
-	OK - * --dbs # do_action_enum_databases: -v, --count, --json, --exclude-sysdbs
-	OK - * --tables # do_action_enum_tables: -v --count, --json, --exclude-sysdbs, -D <db_name>, -T <table_name>, --schema
-	OK - * --columns # do_action_enum_columns: -v --count, --json, --exclude-sysdbs, -D <db_name>, -T <table_name>, -C <column_name>, --schema
-	OK - * --create # create_db: --create <file.db>
-	* --define # do_define_db: --db <file.sql>
-	* --import # do_db_import: --db <file.db>, -D <db_name>, -T <table_name>
-	* --export # do_db_export: --db <file.db>, -D <db_name>, -T <table_name>
-	"""
 	parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter, description="Mgmt tool - Cobalt Strike Stub Release Information Database (CSRID)")
 	
 	parser.add_argument('--db', metavar='<file.db>', dest='override_default_db_file', help="Connect to database, override default <DB_SQLITE_FILE> ('config.py')")
@@ -1145,13 +1136,10 @@ if __name__ == '__main__':
 	parser.add_argument('--export', metavar='<file>', dest='db_export', help='Export to file, use \'-T\' to specify table (add \'--schema\' for schema)' +
 		"\n\n")
 
-	#parser.add_argument('--rm', dest='action_remove', action='store_true', help="Remove from database, combine with '-r' or '-V'")
 	parser.add_argument('--trunc-table', dest='action_truncate_table', action='store_true', help="Remove all records from a table, use '-T' to specify table")
 	parser.add_argument('--drop-table', action='store_true', dest='action_drop_table', help="Delete table from database, use '-T' to specify table" +
 		"\n\n")
 
-	#<Lua scripts> is a comma separated list of directories, script-files or script-categories
-	#parser.add_argument('--script', metavar='<script_name>', dest='run_scripts', help="Run script(s) against the database; comma separated list")
 	parser.add_argument('--script', metavar='<script_name>', dest='run_scripts', help="Runs a script using the comma-separated list of filenames to interact with the database(s).")
 	parser.add_argument('--script-args', metavar='[<script_name>.]<script_arg>=\'<value>\'', dest='script_args', nargs='+', help="Provide arguments to script; space separated list.")
 	parser.add_argument('--script-help', metavar='<script_name>', dest='script_help', help="Show help about script. Use '-v' to show internal script information (useful for debugging), combine with '--script-args' to see how options are parsed.")
