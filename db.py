@@ -1147,7 +1147,7 @@ if __name__ == '__main__':
 
 	#parser.add_argument('--rm', dest='action_remove', action='store_true', help="Remove from database, combine with '-r' or '-V'")
 	parser.add_argument('--trunc-table', dest='action_truncate_table', action='store_true', help="Remove all records from a table, use '-T' to specify table")
-	parser.add_argument('--drop-table', action='store_true', dest='action_drop_table', help="Drop table from database, use '-T' to specify table" +
+	parser.add_argument('--drop-table', action='store_true', dest='action_drop_table', help="Delete table from database, use '-T' to specify table" +
 		"\n\n")
 
 	#<Lua scripts> is a comma separated list of directories, script-files or script-categories
