@@ -985,7 +985,7 @@ def main(args):
 		return
 
 	if args.create_db is not None:
-		print("# create_db")
+		#print("# create_db")
 		if not create_db(args):
 			return
 		# we can both create and define the database table
@@ -1016,7 +1016,7 @@ def main(args):
 #			return
 
 	if args.define_db is not None:
-		print("# do_define_db")
+		#print("# do_define_db")
 		if args.create_db is not None:
 			db_conn = connect_db(args.create_db, args)
 			if db_conn is None:
@@ -1029,7 +1029,7 @@ def main(args):
 			return
 
 	if args.db_import is not None:
-		print("# do_db_import")
+		#print("# do_db_import")
 		do_db_import(db_conn, args)
 		db.close(db_conn)
 		return
@@ -1039,16 +1039,16 @@ def main(args):
 		do_action_attach_db(db_conn, args)
 
 	if args.db_export is not None:
-		print("# do_db_export")
+		#print("# do_db_export")
 		do_db_export(db_conn, args)
 		return
 
 	if args.action_truncate_table:
-		print("# do_action_truncate_table")
+		#print("# do_action_truncate_table")
 		do_action_truncate_table(db_conn, args)
 		return
 	if args.action_drop_table:
-		print("# do_action_drop_table")
+		#print("# do_action_drop_table")
 		do_action_drop_table(db_conn, args)
 		return
 
@@ -1078,19 +1078,19 @@ def main(args):
 		return
 
 	if args.schema and (args.table_name is not None and "," not in args.table_name) and (args.db_name is not None or db.db_count(db_conn) == 1):
-		print("# do_action_dump_table_schema")
+		#print("# do_action_dump_table_schema")
 		do_action_dump_table_schema(db_conn, args)
 		db.close(db_conn)
 		return
 
 	if args.table_name is not None and args.count:
-		print("# do_action_table_record_count")
+		#print("# do_action_table_record_count")
 		do_action_table_record_count(db_conn, args)
 		db.close(db_conn)
 		return
 
 	if args.query is not None:
-		print("# do_action_query_db")
+		#print("# do_action_query_db")
 		do_action_query_db(db_conn, args)
 		db.close(db_conn)
 		return
@@ -1099,16 +1099,9 @@ def main(args):
 		db.close(db_conn)
 		return
 
-	"""
-		Stub Release Management
-	"""
 	if not do_db_health_check(db_file):
 		print("[!] health check failed")
 		return
-
-	#if args.action_remove:
-	#	do_sub_actions_remove_release(db_conn, args)
-	#	return
 
 	print("[!] warning: no action was executed!")
 
@@ -1130,12 +1123,6 @@ if __name__ == '__main__':
 	
 	parser.add_argument('--db', metavar='<file.db>', dest='override_default_db_file', help="Connect to database, override default <DB_SQLITE_FILE> ('config.py')")
 	parser.add_argument('-A', '--attach-dbs', metavar='[<db_name>:]<file.db>[,...]', dest='attach_db', help="Attach database file with defined name, attach multiple dbs separated by comma" +
-		"\n\n")
-
-	parser.add_argument('-q', metavar='<query>', dest='query', help="Run query against the database")
-	parser.add_argument('--template', metavar='<file>', dest='query_from_file', help="Run query template against the database")
-	parser.add_argument('-p', metavar='<param>', dest='template_parameters', nargs='+', default=[], help="Parameter(s) for query template")
-	parser.add_argument('--show', dest='inspect_query_template', action='store_true', help="Show query template description, use '-v' to show parameters" +
 		"\n\n")
 
 	parser.add_argument('--dbs', dest='action_enum_databases', action='store_true', help="Enumerate databases; use '--count' to output num of databases and with '-v' outputs table count per database")
@@ -1170,7 +1157,12 @@ if __name__ == '__main__':
 	parser.add_argument('--script-help', metavar='<script_name>', dest='script_help', help="Show help about script. Use '-v' to show internal script information (useful for debugging), combine with '--script-args' to see how options are parsed.")
 	parser.add_argument('--ext-script', metavar='<folder>', dest='extend_script', help="Adds another \"scripts\" directory; comma separated list" +
 		"\n\n")
-	
+
+	parser.add_argument('--template', metavar='<file>', dest='query_from_file', help="Run query template against the database")
+	parser.add_argument('-p', metavar='<param>', dest='template_parameters', nargs='+', default=[], help="Parameter(s) for query template")
+	parser.add_argument('--show', dest='inspect_query_template', action='store_true', help="Show query template description, use '-v' to show parameters")
+	parser.add_argument('-q', metavar='<query>', dest='query', help="Run raw query against the database" +
+		"\n\n")
 
 	parser.add_argument('--json', dest='out_json', action='store_true', help="Output as json")
 	parser.add_argument('-v', dest='verbose_mode', action='store_true', help="Verbose output. Output in table-format for 'Enumerate' options.")
