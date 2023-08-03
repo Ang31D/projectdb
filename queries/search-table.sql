@@ -9,7 +9,7 @@ Search in <table> under <column> for "keyword"
 	.PARAMETER: column
 	 column name to search under
 	.PARAMETER: keyword
-	 phrase to search for in the column
+	 phrase to search for
 #	.PARAMETER: or_keyword
 #	 phrase to search for in the 'comment' column
 #>
