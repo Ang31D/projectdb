@@ -1095,7 +1095,6 @@ def main(args):
 		db.close(db_conn)
 		return
 	if args.query_from_file is not None:
-		print("# do_action_query_db_from_template")
 		do_action_query_db_from_template(db_conn, args)
 		db.close(db_conn)
 		return
