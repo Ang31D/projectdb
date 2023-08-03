@@ -101,7 +101,10 @@ class init(Script):
 				if "script-path" in show_options:
 					if "author" not in show_options:
 						script_item.append("#")
-					script_item.append("(%s)" % script["path"])
+					if script["path"].startswith(os.path.dirname(lib.root_dir())):
+						script_item.append(".%s" % script["path"][len(os.path.dirname(lib.root_dir())):])
+					else:
+						script_item.append("%s" % script["path"])
 			if len(category_filter) > 0:
 				found_category = False
 				for category in script_module.categories:
