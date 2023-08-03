@@ -37,16 +37,6 @@ class init(Script):
 
 		self._import_db(args)
 
-	def _connect_db(self, db_file):
-		if not db.db_exists(db_file):
-			print("[!] error: %s; database failed to connect - missing file '%s'" % (self.name, db_file))
-			return None
-		db_conn = db.connect(db_file)
-		if db_conn is None:
-			print("[!] error: %s; database failed to connect - '%s'" % (self.name, db_file))
-			return None
-		return db_conn
-
 	def _import_db(self, args):
 		verbose_mode = False
 		if "_internal.verbose_mode" in self._extend:
@@ -59,8 +49,6 @@ class init(Script):
 		if 'db-name' in args:
 			db_name = args['db-name']['value']
 
-		#db_file = args['db']['value']
-		#db_conn = self._connect_db(db_file)
 		db_conn = self._extend["sqlite.db_conn"]
 		if db_conn is None:
 			return
@@ -72,11 +60,11 @@ class init(Script):
 	
 		column_list = db.table_columns(db_conn, db_name, table_name)
 		table_columns = ', '.join(column_list)
-		quest_values = ', '.join(list(repeat("?", len(column_list))))
+		query_values = ', '.join(list(repeat("?", len(column_list))))
 	
 		query_param = """INSERT INTO %s
 					(%s) 
-					VALUES (%s);""" % (table_name, table_columns, quest_values)
+					VALUES (%s);""" % (table_name, table_columns, query_values)
 
 		cur = db_conn.cursor()
 		with open(data_file) as f:
