@@ -76,7 +76,7 @@ class Script:
 		if "_internal.verbose_mode" in self._extend:
 			verbose_mode = self._extend["_internal.verbose_mode"]
 
-		help_output = self.name.upper()
+		help_output = "%s - %s" % (self.name.upper(), self.description)
 		#help_output += "\nAuthor: %s" % self.author
 		if verbose_mode:
 			help_output += "\n%s" % ("-"*88)
@@ -84,10 +84,10 @@ class Script:
 			help_output += "\n%s" % ("-"*88)
 		help_output += "\n"
 		
-		help_output += "\n  %s" % self.description
+		#help_output += "\n  %s" % self.description
 		# max 93 in length until new line (\n)
 		# ex.:         "\n --------------------------------------------------------------------------------------------
-		help_output += "\n\n"
+		help_output += "\n"
 		help_output += self._on_help()
 		print(help_output)
 
