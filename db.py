@@ -1140,9 +1140,10 @@ if __name__ == '__main__':
 	parser.add_argument('--drop-table', action='store_true', dest='action_drop_table', help="Delete table from database, use '-T' to specify table" +
 		"\n\n")
 
-	parser.add_argument('--script', metavar='<script_name>', dest='run_script', help="Runs a script using the comma-separated list of filenames to interact with the database(s).")
-	parser.add_argument('--script-args', metavar='[<script_name>.]<script_arg>=\'<value>\'', dest='script_args', nargs='+', help="Provide arguments to script; space separated list.")
-	parser.add_argument('--script-help', metavar='<script_name>', dest='script_help', help="Show help about script. Use '-v' to show internal script information (useful for debugging), combine with '--script-args' to see how options are parsed.")
+	parser.add_argument('--script', metavar='<script_name>', dest='run_script', help="Run script(s); using the comma-separated list of names, to interact with the database." +
+		"\nTo list available scripts use '--script list'.")
+	parser.add_argument('--script-args', metavar='[<script_name>.]<script_arg>=\'<value>\'', dest='script_args', nargs='+', help="Provide arguments to script; space-separated list.")
+	parser.add_argument('--script-help', metavar='<script_name>', dest='script_help', help="Show help about a script. Use '-v' to show internal script information (useful for debugging), combine with '--script-args' to see how options are parsed.")
 	parser.add_argument('--ext-script', metavar='<folder>', dest='extend_script', help="Adds another \"scripts\" directory; comma separated list" +
 		"\n\n")
 
