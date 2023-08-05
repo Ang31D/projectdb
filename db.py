@@ -1110,24 +1110,24 @@ def main(args):
 
 
 if __name__ == '__main__':
-	parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter, description="Mgmt tool - Cobalt Strike Stub Release Information Database (CSRID)")
+	parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter, description="Project Database (sqlite) - Mgmt Tool")
 	
 	parser.add_argument('--db', metavar='<file.db>', dest='override_default_db_file', help="Connect to database, override default <DB_SQLITE_FILE> ('config.py')")
-	parser.add_argument('-A', '--attach-dbs', metavar='[<db_name>:]<file.db>[,...]', dest='attach_db', help="Attach database file with defined name, attach multiple dbs separated by comma" +
+	parser.add_argument('--attach', metavar='[<db_name>:]<file.db>[,...]', dest='attach_db', help="Attach database file; optional with defined name, comma-separated list" +
 		"\n\n")
 
 	parser.add_argument('--dbs', dest='action_enum_databases', action='store_true', help="Enumerate databases; use '--count' to output num of databases and with '-v' outputs table count per database")
 	parser.add_argument('--tables', dest='action_enum_tables', action='store_true', help="Enumerate database tables; use '--count' to output num of tables and with '-v' outputs records count per table")
 	parser.add_argument('--columns', dest='action_enum_columns', action='store_true', help="Enumerate database table columns; use '-v' to show column count instead")
-	parser.add_argument('--schema', dest='schema', action='store_true', help="Show schema for dbs, tables and columns")
+	parser.add_argument('--schema', dest='schema', action='store_true', help="Show schema for db, table and column")
 	parser.add_argument('--exclude-sysdbs', dest='exclude_sysdbs', action='store_true', help="Exclude system databases when enumerating tables (sqlite_schema, sqlite_temp_schema)")
 	parser.add_argument('--count', dest='count', action='store_true', help="Output count")
 	parser.add_argument('--dump', dest='action_dump_table_entries', action='store_true', help="Dump database table entries")
 	parser.add_argument('--limit', metavar='<row_count>', dest='limit', type=int, help="Constrain the number of rows returned when using '--dump'")
-	parser.add_argument('--offset', metavar='<offset>', dest='offset', type=int, help="Define the start of returned rows, use '--limit'")
-	parser.add_argument('-D', metavar='<DB>', dest='db_name', help="Select database")
-	parser.add_argument('-T', metavar='<TBL>', dest='table_name', help="Select database table(s)")
-	parser.add_argument('-C', metavar='<COL>', dest='column_name', help="Select database table column(s)" +
+	parser.add_argument('--offset', metavar='<offset>', dest='offset', type=int, help="Define the start of returned rows, use with '--limit' (0-based index)")
+	parser.add_argument('-D', metavar='<DB>', dest='db_name', help="Select database(s), comma-separated list")
+	parser.add_argument('-T', metavar='<TBL>', dest='table_name', help="Select database table(s), comma-separated list")
+	parser.add_argument('-C', metavar='<COL>', dest='column_name', help="Select database table column(s), comma-separated list" +
 		"\n\n")
 	
 	parser.add_argument('--create', metavar='<file.db>', dest='create_db', help="Create an empty database file")
