@@ -1144,7 +1144,7 @@ if __name__ == '__main__':
 		"\nTo list available scripts use '--script list'.")
 	parser.add_argument('--script-args', metavar='[<script_name>.]<script_arg>=\'<value>\'', dest='script_args', nargs='+', help="Provide arguments to script; space-separated list.")
 	parser.add_argument('--script-help', metavar='<script_name>', dest='script_help', help="Show help about a script. Use '-v' to show internal script information (useful for debugging), combine with '--script-args' to see how options are parsed.")
-	parser.add_argument('--ext-script', metavar='<folder>', dest='extend_script', help="Adds another \"scripts\" directory; comma separated list" +
+	parser.add_argument('--ext-script', metavar='<folder>', dest='extend_script', help="Extend the script repository by adding \"scripts\" directory; comma separated list" +
 		"\n\n")
 
 	parser.add_argument('--template', metavar='<file>', dest='query_from_file', help="Run query template against the database")
