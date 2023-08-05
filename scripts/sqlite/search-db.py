@@ -298,8 +298,12 @@ class init(Script):
 
 		#headers = ['db', 'table', 'column', 'value']
 		table_list = []
-		if not db.table_exists_in_db(db_conn, db_name, table_name):
-			print("[!] warning: %s; table not found - '%s'" % (self.name, table_name))
+		if db_name is None:
+			if not db.table_exists(db_conn, table_name):
+				print("[!] warning: %s; table not found - '%s'" % (self.name, table_name))
+				return
+		elif not db.table_exists_in_db(db_conn, db_name, table_name):
+			print("[!] warning: %s; table in db not found - '%s.%s'" % (self.name, db_name, table_name))
 			return
 
 		
