@@ -76,12 +76,13 @@ class Script:
 		if "_internal.verbose_mode" in self._extend:
 			verbose_mode = self._extend["_internal.verbose_mode"]
 
-		help_output = self.name
+		help_output = self.name.upper()
 		#help_output += "\nAuthor: %s" % self.author
 		if verbose_mode:
 			help_output += "\n%s" % ("-"*88)
 			help_output += "\n%s" % self._script_internals()
 			help_output += "\n%s" % ("-"*88)
+		help_output += "\n"
 		
 		help_output += "\n  %s" % self.description
 		# max 93 in length until new line (\n)
@@ -111,8 +112,8 @@ class Script:
 				script_args = self._extend["_internal.script.args"]
 				if self.name in script_args and "args" in script_args[self.name]:
 					args = script_args[self.name]["args"]
-					data += "\n\n* Options (parsed)"
 					if len(list(args)) > 0:
+						data += "\n\n* Options (parsed)"
 						table_data = []
 						for key in args:
 							table_data.append(["  ", "%s" % key, ":", "%s" % args[key]["value"]])
