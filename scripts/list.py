@@ -23,10 +23,10 @@ class init(Script):
 	
 	def _on_help(self):
 		help_output  = "  Lists available scripts that can be executed through the '--script' argument."
-		help_output += "\n  Use '--script list-class --script-help <script>' to view help of each script."
+		help_output += "\n  Use '--script-help <script_name>' to get help on the specific script."
 		help_output += "\n"
 		help_output += "\n  * Options:"
-		help_output += "\n    find='<value>'  - (optional) search for <value>, match on script name or description"
+		help_output += "\n    find='<value>'  - (optional) search for <value>, match on script name, description or author"
 		help_output += "\n"
 		help_output += "\n  To show further details, use the 'show' script option:"
 		help_output += "\n    --script-args show='<option>[,<option>]'"
