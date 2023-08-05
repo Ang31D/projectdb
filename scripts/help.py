@@ -24,7 +24,7 @@ class init(Script):
 		help_output += "\n  Use '-v' to show internal script information (useful for debugging), combine with"
 		return help_output
 
-	def _on_run(self):
+	def _on_run(self, args):
 		# max 93 in length until new line (\n)
 		# ex.:             "\n --------------------------------------------------------------------------------------------
 		#detailed_output  = "\n* being printed, it is also saved in the Nmap registry so other Nmap scripts can use it. That"
