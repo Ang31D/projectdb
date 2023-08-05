@@ -85,9 +85,6 @@ class init(Script):
 		if "find" in args:
 			search_value = args["find"]["value"]
 
-		#exclude_sysdbs = False
-		#if "exclude" in args and "sysdbs" == args["exclude"]["value"]:
-		#	exclude_sysdbs = True
 		exclude_sysdbs = False
 		if "options" in args:
 			option_args = args["options"]["value"].split(",")
@@ -106,8 +103,6 @@ class init(Script):
 		if "look-for" in args:
 			look_for = args["look-for"]["value"]
 
-		#db_file = args['db']['value']
-		#db_conn = self._connect_db(db_file)
 		db_conn = self._extend["sqlite.db_conn"]
 		if db_conn is None:
 			return
@@ -130,16 +125,6 @@ class init(Script):
 			print("[!] warning: %s; look-for type not supported - '%s'" % (self.name, look_for))
 
 		db.close(db_conn)
-
-	def _connect_db(self, db_file):
-		if not db.db_exists(db_file):
-			print("[!] error: %s; database failed to connect - missing file '%s'" % (self.name, db_file))
-			return None
-		db_conn = db.connect(db_file)
-		if db_conn is None:
-			print("[!] error: %s; database failed to connect - '%s'" % (self.name, db_file))
-			return None
-		return db_conn
 
 	def _search_db_for_db_name(self, db_conn, find_db_name, exclude_sysdbs):
 		db_list = db.databases(db_conn)
