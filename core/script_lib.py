@@ -15,6 +15,12 @@ def root_dir():
 	core_dir = os.path.dirname(os.path.realpath(__file__))
 	root_dir = os.path.dirname(core_dir)
 	return os.path.join(root_dir, "scripts")
+def get_script_dir_from_script_file(script_path):
+	path = os.path.dirname(os.path.realpath(script_path))
+	if "/scripts/" not in path:
+		return None
+	script_dir = path[: path.rindex("/scripts/")+len("/scripts/")]
+	return script_dir
 
 def _get_script_categories(script_path):
 	if not os.path.isfile(script_path):
