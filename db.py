@@ -931,7 +931,7 @@ def do_action_script_help(args):
 			print("[!] warning: script not found - '%s'" % script_path)
 
 def do_action_run_script(db_conn, args):
-	if args.run_scripts is None:
+	if args.run_script is None:
 		if args.verbose_mode:
 			print("[!] warning: no script defined")
 		return
@@ -943,9 +943,9 @@ def do_action_run_script(db_conn, args):
 			print("[!] error: folder not found - '%s'" % (lib_root_dir))
 		return
 
-	run_script_args = lib.parse_raw_script_args(args.run_scripts, args.script_args)
+	run_script_args = lib.parse_raw_script_args(args.run_script, args.script_args)
 	if run_script_args is None:
-		print("[!] error: lib.parse_script_args(args.run_scripts, args.script_args)")
+		print("[!] error: lib.parse_script_args(args.run_script, args.script_args)")
 		return
 	#print("do_action_run_script() - %s" % run_script_args)
 	
@@ -998,7 +998,7 @@ def main(args):
 		#print("[!] error: database failed to connect - '%s'" % db_file)
 		return
 
-	if args.run_scripts is not None:
+	if args.run_script is not None:
 		do_action_attach_db(db_conn, args)
 		do_action_run_script(db_conn, args)
 		db.close(db_conn)
@@ -1140,7 +1140,7 @@ if __name__ == '__main__':
 	parser.add_argument('--drop-table', action='store_true', dest='action_drop_table', help="Delete table from database, use '-T' to specify table" +
 		"\n\n")
 
-	parser.add_argument('--script', metavar='<script_name>', dest='run_scripts', help="Runs a script using the comma-separated list of filenames to interact with the database(s).")
+	parser.add_argument('--script', metavar='<script_name>', dest='run_script', help="Runs a script using the comma-separated list of filenames to interact with the database(s).")
 	parser.add_argument('--script-args', metavar='[<script_name>.]<script_arg>=\'<value>\'', dest='script_args', nargs='+', help="Provide arguments to script; space separated list.")
 	parser.add_argument('--script-help', metavar='<script_name>', dest='script_help', help="Show help about script. Use '-v' to show internal script information (useful for debugging), combine with '--script-args' to see how options are parsed.")
 	parser.add_argument('--ext-script', metavar='<folder>', dest='extend_script', help="Adds another \"scripts\" directory; comma separated list" +
