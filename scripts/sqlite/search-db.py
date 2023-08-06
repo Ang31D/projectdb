@@ -239,7 +239,6 @@ class init(Script):
 		# // script options
 		# ----------------------------------------------------------------
 		out_full_width = False
-		tablefmt='github'
 		if "options" in args:
 			option_args = args["options"]["value"].split(",")
 			out_full_width = "full-width" in option_args
@@ -271,7 +270,7 @@ class init(Script):
 					if find_value is not None:
 						if find_value.lower() not in str(column_value).lower():
 							continue
-					column_value = column_value.rstrip()
+					column_value = str(column_value).rstrip()
 					if not out_full_width and len(column_value) > 100:
 						column_value = "%s...<STRIPPED>" % column_value[:100]
 					table_list.append([db_name, table_name, column_name, column_value])
