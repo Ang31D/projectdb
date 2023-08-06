@@ -14,7 +14,7 @@ class init(Script):
 		self._categories.append("sqlite")
 
 	def _on_help(self):
-		help_output  = "\n  Defines the sqlite database; create table through their definition file"
+		help_output  = "  Defines the sqlite database; create table through their definition file"
 		help_output += "\n  Use '--script-args' to pass options to this script."
 		help_output += "\n"
 		help_output += "\n  * Options:"
