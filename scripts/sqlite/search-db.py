@@ -354,7 +354,7 @@ class init(Script):
 							continue
 					find_values = find_value.split("|")
 					for match_on_value in find_values:
-						if not self.match_on_condition(match_on_value, field_value, match_condition):
+						if self.match_on_condition(match_on_value, field_value, match_condition):
 							match_found = True
 							break
 			
