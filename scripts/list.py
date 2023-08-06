@@ -3,12 +3,6 @@ import core.script_lib as lib
 import os
 from tabulate import tabulate
 
-"""
-list available scripts
-
---ext-script projects/csrid/scripts --script list --script-args  list-by='category' show='script-description'
-"""
-
 class init(Script):
 	def __init__(self):
 		super().__init__()
