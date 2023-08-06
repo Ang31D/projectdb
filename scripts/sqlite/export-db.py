@@ -17,7 +17,7 @@ class init(Script):
 		self._categories.append("sqlite")
 
 	def _on_help(self):
-		help_output  = "\n  Exports database table records into file as csv"
+		help_output  = "  Exports database table records into file as csv"
 		help_output += "\n  Use '--script-args' to pass options to this script."
 		help_output += "\n"
 		help_output += "\n  * Options:"
