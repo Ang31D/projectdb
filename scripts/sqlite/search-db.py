@@ -44,10 +44,19 @@ class init(Script):
 			'match' options; conditionalizes the 'find' match
 		"""
 		help_output += "\n%s" % "    * Match"
+		help_output += "\n%s" % "      match-cond='<option>' # one option only; available options:"
+		help_output += "\n%s" % "        exact               - <field> match on exact <value> (default)"
+		help_output += "\n%s" % "        contains            - <field> contains <value>"
+		help_output += "\n%s" % "        startswith          - <field> starts with <value>"
+		help_output += "\n%s" % "        endswith            - <field> ends with <value>"
+		help_output += "\n%s" % "        has-value           - <field> is not blank"
+		help_output += "\n"
+
 		help_output += "\n%s" % "      match='<option>'      # comma separated list of options; available options:"
 		help_output += "\n%s" % "        multi               - match on multiple 'find' values; values separated by '|'"
 		help_output += "\n%s" % "        reverse             - negative match on 'find' value"
 		help_output += "\n"
+
 		"""
 			'format' options; controls the output
 		"""
@@ -284,6 +293,10 @@ class init(Script):
 		if "column" in args:
 			field_name = args["column"]["value"]
 
+		match_condition = "exact"
+		if "match-cond" in args:
+			match_condition = args["match-cond"]["value"]
+
 		reverse_match = False
 		multi_match = False
 		if "match" in args:
@@ -331,17 +344,17 @@ class init(Script):
 
 				if not multi_match:
 					if field_name is not None:
-						if field_name.lower() != column_name.lower():
+						if not self.match_on_condition(field_name, column_name, match_condition):
 							continue
-					if find_value.lower() in str(field_value).lower():
+					if self.match_on_condition(find_value, field_value, match_condition):
 						match_found = True
 				else:
 					if field_name is not None:
-						if field_name.lower() != column_name.lower():
+						if not self.match_on_condition(field_name, column_name, match_condition):
 							continue
 					find_values = find_value.split("|")
 					for match_on_value in find_values:
-						if match_on_value.lower() in str(field_value).lower():
+						if not self.match_on_condition(match_on_value, field_value, match_condition):
 							match_found = True
 							break
 			
@@ -352,6 +365,25 @@ class init(Script):
 				table_list.append(row_list)
 
 		self._output_table(table_list, headers, out_format)
+
+	def match_on_condition(self, find_value, match_on_value, match_condition):
+		match_found = False
+		if "exact" == match_condition:
+			if find_value.lower() == str(match_on_value).lower():
+				match_found = True
+		elif "contains" == match_condition:
+			if find_value.lower() in str(match_on_value).lower():
+				match_found = True
+		elif "startswith" == match_condition:
+			if str(match_on_value).lower().startswith(find_value.lower()):
+				match_found = True
+		elif "startswith" == match_condition:
+			if str(match_on_value).lower().endswith(find_value.lower()):
+				match_found = True
+		elif "has-value" == match_condition:
+			if len(str(match_on_value)) == 0:
+				match_found = True
+		return match_found
 
 	def _output_table(self, table_list, headers, out_format=None):
 		tablefmt='github'
