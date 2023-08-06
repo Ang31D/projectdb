@@ -45,8 +45,8 @@ class init(Script):
 		"""
 		help_output += "\n%s" % "    * Match"
 		help_output += "\n%s" % "      match-cond='<option>' # one option only; available options:"
-		help_output += "\n%s" % "        exact               - <field> match on exact <value> (default)"
-		help_output += "\n%s" % "        contains            - <field> contains <value>"
+		help_output += "\n%s" % "        contains            - <field> contains <value> (default)"
+		help_output += "\n%s" % "        exact               - <field> match on exact <value>"
 		help_output += "\n%s" % "        startswith          - <field> starts with <value>"
 		help_output += "\n%s" % "        endswith            - <field> ends with <value>"
 		help_output += "\n%s" % "        has-value           - <field> is not blank"
@@ -293,7 +293,7 @@ class init(Script):
 		if "column" in args:
 			field_name = args["column"]["value"]
 
-		match_condition = "exact"
+		match_condition = "contains"
 		if "match-cond" in args:
 			match_condition = args["match-cond"]["value"]
 
