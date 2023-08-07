@@ -336,9 +336,9 @@ class init(Script):
 				field_value = row[i]
 				column_name = table_columns[i]
 
-				mod_column_value = field_value.rstrip()
-				if not out_full_width and len(field_value) > 100:
-					mod_column_value = "%s...<STRIPPED>" % field_value[:100]
+				mod_column_value = str(field_value).rstrip()
+				if not out_full_width and len(str(field_value)) > 100:
+					mod_column_value = "%s...<STRIPPED>" % str(field_value)[:100]
 				row_list.append(mod_column_value)
 
 				if not multi_match:
