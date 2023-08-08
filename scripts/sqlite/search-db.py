@@ -160,9 +160,8 @@ class init(Script):
 		table_list = []
 		for table in tables:
 			table_name = table[1]
-			if table_name in db.SYSDBS:
-				if exclude_sysdbs:
-					continue
+			if db.is_sys_table(table_name) and exclude_sysdbs:
+				continue
 			if find_table_name is not None:
 				if find_table_name.lower() not in table_name.lower():
 					continue
@@ -188,9 +187,8 @@ class init(Script):
 			db_name = table[0]
 			table_name = table[1]
 
-			if table_name in db.SYSDBS:
-				if exclude_sysdbs:
-					continue
+			if db.is_sys_table(table_name) and exclude_sysdbs:
+				continue
 			columns = db.columns(db_conn, db_name, table_name)
 			for i in range(len(columns)):
 				match_found = False
@@ -238,6 +236,16 @@ class init(Script):
 
 		# // script options
 		# ----------------------------------------------------------------
+		match_condition = "contains"
+		if "match-cond" in args:
+			match_condition = args["match-cond"]["value"]
+		reverse_match = False
+		#multi_match = False
+		if "match" in args:
+			match_args = args["match"]["value"].split(",")
+			reverse_match = "reverse" in match_args
+			#multi_match = "multi" in match_args
+
 		out_full_width = False
 		if "options" in args:
 			option_args = args["options"]["value"].split(",")
@@ -252,7 +260,7 @@ class init(Script):
 		for table in tables:
 			db_name = table[0]
 			table_name = table[1]
-			if table_name in db.SYSDBS and exclude_sysdbs:
+			if db.is_sys_table(table_name) and exclude_sysdbs:
 				continue
 
 			table_columns = db.table_columns(db_conn, db_name, table_name)
@@ -264,16 +272,26 @@ class init(Script):
 			for row in rows:
 				# convert tuple to list
 				row = [*row,]
+				
+				row_list = []
 				for i in range(len(table_columns)):
+					match_found = False
 					column_name = table_columns[i]
 					column_value = row[i]
+
 					if find_value is not None:
-						if find_value.lower() not in str(column_value).lower():
-							continue
+						if self.match_on_condition(find_value, column_value, match_condition):
+							match_found = True
+
 					column_value = str(column_value).rstrip()
 					if not out_full_width and len(column_value) > 100:
 						column_value = "%s...<STRIPPED>" % column_value[:100]
-					table_list.append([db_name, table_name, column_name, column_value])
+
+					if match_found:
+						if not reverse_match:
+							table_list.append([db_name, table_name, column_name, column_value])
+					elif reverse_match:
+						table_list.append([db_name, table_name, column_name, column_value])
 
 		headers = ['db', 'table', 'column', 'value']
 		self._output_table(table_list, headers, out_format)
@@ -380,7 +398,7 @@ class init(Script):
 			if str(match_on_value).lower().endswith(find_value.lower()):
 				match_found = True
 		elif "has-value" == match_condition:
-			if len(str(match_on_value)) == 0:
+			if len(str(match_on_value)) > 0:
 				match_found = True
 		return match_found
 

@@ -1,12 +1,13 @@
 #!/usr/bin/python3
 import os
 import sqlite3
-#from sqlite3 import OperationalError as Exception_OperationalError
 
 class Exception:
 	OperationalError = sqlite3.OperationalError
 
-SYSDBS = ["sqlite_schema", "sqlite_temp_schema"]
+
+def is_sys_table(table_name):
+	return table_name.lower().startswith("sqlite_")
 
 def table_definition_from_file(file):
 	def_data = None

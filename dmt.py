@@ -97,7 +97,7 @@ def do_action_enum_databases(db_conn, args):
 				table_count = 0
 				for table in db.tables(db_conn, db_name, None):
 					table_name = table[1]
-					if args.exclude_sysdbs and table_name in db.SYSDBS:
+					if db.is_sys_table(table_name) and args.exclude_sysdbs:
 						continue
 					table_count += 1
 				db_list[i].append(table_count)
@@ -159,9 +159,8 @@ def do_action_table_record_count(db_conn, args):
 	table_list = []
 	for table in tables:
 		table_name = table[1]
-		if args.exclude_sysdbs:
-			if table_name in db.SYSDBS:
-				continue
+		if db.is_sys_table(table_name) and args.exclude_sysdbs:
+			continue
 		if len(filter_on_tables) > 0:
 			if table_name not in filter_on_tables:
 				continue
@@ -191,9 +190,8 @@ def do_action_enum_tables(db_conn, args):
 	table_list = []
 	for table in tables:
 		table_name = table[1]
-		if table_name in db.SYSDBS:
-			if args.exclude_sysdbs:
-				continue
+		if db.is_sys_table(table_name) and args.exclude_sysdbs:
+			continue
 		if len(filter_on_tables) > 0:
 			if table_name not in filter_on_tables:
 				continue
@@ -291,9 +289,8 @@ def do_action_enum_columns(db_conn, args):
 	for db_name in db_names:
 		for table_name in table_names:
 			# filter out system databases
-			if args.exclude_sysdbs:
-				if table_name in db.SYSDBS:
-					continue
+			if db.is_sys_table(table_name) and args.exclude_sysdbs:
+				continue
 
 			columns = db.columns(db_conn, db_name, table_name)
 			for i in range(len(columns)):
