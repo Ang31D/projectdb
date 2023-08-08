@@ -944,11 +944,9 @@ def do_action_run_script(db_conn, args):
 	if run_script_args is None:
 		print("[!] error: lib.parse_script_args(args.run_script, args.script_args)")
 		return
-	#print("do_action_run_script() - %s" % run_script_args)
 	
 	repo_dir = lib_root_dir
 	if args.extend_script is not None:
-		#extend_script = os.path.realpath(args.extend_script)
 		repo_dir = args.extend_script
 	script_repo = lib.repos(repo_dir)
 
@@ -965,16 +963,15 @@ def do_action_run_script(db_conn, args):
 			script_module = module.init()
 			script_module.extend({"_internal.script": script})
 			script_module.extend({"_internal.verbose_mode": args.verbose_mode})
+			script_module.extend({"_internal.args.out_json": args.out_json})
+			
 			if "sqlite" in script_module.requirements:
 				script_module.extend({"sqlite.db_conn": db_conn})
 			if "script-repo" in script_module.requirements:
 				script_module.extend({"script.repo-dir": repo_dir})
+
 			module_args = run_script_args[script["name"]]["args"]
 			script_module.run(module_args)
-#		else:
-#			print("Script '%s' unknown" % script["name"])
-
-#	print("[!] do_action_run_script() - NOT IMPLEMENTED")
 
 def main(args):
 	if args.script_help is not None:
