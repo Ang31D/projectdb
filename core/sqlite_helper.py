@@ -73,23 +73,27 @@ def close(db_conn):
 	db_conn.close()
 
 def table_exists(db_conn, table_name):
-	#table_list = db_tables(db_conn)
-	#table_list = list(map(lambda n: n[0], table_list))
 	table_list = table_names(db_conn, None, table_name)
 	return table_name in table_list
-def table_exists_in_db(db_conn, db_name, table_name):
-	#table_list= db_tables(db_conn)
-	#return table_name in table_list
 
+def table_exists_in_db(db_conn, db_name, table_name):
 	result = False
-	cur = db_conn.cursor()
+	if db_name is None or table_name is None:
+		return result
+
+	query = '''
+		SELECT * FROM pragma_table_info
+		WHERE arg='%s' AND schema='%s'
+	''' % (table_name, db_name)
+
 	try:
-		cur.execute("SELECT * FROM %s.%s LIMIT 1;" % (db_name, table_name))
-		data_list = cur.fetchall()
+		cur = db_conn.cursor()
+		cur.execute(query)
+		data_list =  cur.fetchall()
 		cur.close()
 		return True
-
 	except sqlite3.OperationalError:
+		print("sqlite3.OperationalError")
 		return False
 
 def truncate_table(db_conn, table_name):
@@ -209,19 +213,27 @@ def column_names(db_conn, table_name):
 	#table_name = table_name.split(" ")[2]
 	return tbl_schema_string
 def table_columns(db_conn, db_name, table_name):
-	table_db = ''
-	if db_name is not None:
-		table_db = "%s." % db_name
+	if db_name is None or table_name is None:
+		return []
+
 	query = '''
-		SELECT * FROM %s%s
-	''' % (table_db, table_name)
+		SELECT * FROM pragma_table_info
+		WHERE arg='%s' AND schema='%s'
+	''' % (table_name, db_name)
+
 	try:
 		cur = db_conn.cursor()
 		cur.execute(query)
-		column_list = [description[0] for description in cur.description]
+		rows =  cur.fetchall()
+		cur.close()
+		column_list = []
+		for row in rows:
+			row = [*row,]
+			column_list.append(row[1])
 		return column_list
 	except sqlite3.OperationalError:
-		return None
+		print("sqlite3.OperationalError")
+		return []
 
 def database_names(db_conn):
 	db_list = databases(db_conn)
