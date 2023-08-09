@@ -170,10 +170,10 @@ def tables(db_conn, db_name, table_name):
 		return []
 	return rows
 def table_names(db_conn, db_name, table_name):
-	table_list = tables(db_conn, db_name, table_name)
+	rows = tables(db_conn, db_name, table_name)
 	name_list = []
-	for table_item in table_list:
-		name_list.append(table_item[1])
+	for row in rows:
+		name_list.append(row[1])
 	return name_list
 
 """
@@ -199,13 +199,15 @@ def columns(db_conn, db_name, table_name):
 def column_names(db_conn, table_name):
 	#table_columns = columns(db_conn, db_name, table_name)
 	tbl_schema_string = table_schema(db_conn, table_name)
+	#print(tbl_schema_string)
+	if tbl_schema_string is None:
+		return []
 	
 	tbl_schema = []
 	for tbl_schema_line in tbl_schema_string.split("\n"):
 		tbl_schema.append(tbl_schema_line.strip())
 	tbl_schema_string = ''.join(tbl_schema)
 
-	print(tbl_schema_string)
 	columns_def = tbl_schema_string[tbl_schema_string.index("(")+1:][:-1]
 	columns_defs = columns_def.split(",")
 	return list(map(lambda c: c.split(" ")[0], columns_def.split(",")))
