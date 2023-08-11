@@ -73,6 +73,10 @@ def close(db_conn):
 	db_conn.close()
 
 def table_exists(db_conn, table_name):
+	table_list = tables(db_conn, None, table_name)
+	if len(table_list) > 0:
+		return True
+	return False
 	table_list = table_names(db_conn, None, table_name)
 	return table_name in table_list
 
@@ -260,7 +264,143 @@ def record_count(db_conn, table_name):
 	if len(rows) == 1:
 		records = rows[0][0]
 	return records
+def pragma_table_info(db_conn, table_name):
+	query_param = '''
+		PRAGMA
+			table_info(%s)
+	''' % table_name
+	param_data = ()
+	rows = execute(db_conn, query_param, param_data, True)
+	return rows
+def get_table_column_schema(db_conn, table_name):
+	schema_list = []
+	rows = pragma_table_info(db_conn, table_name)
+	for row in rows:
+		#(0, 'id', 'INTEGER', 1, None, 1)
+		row = [*row,]
+		schema_list.append(row[1:3])
+	return schema_list
+def get_table_columns(db_conn, table_name):
+	#column_list = []
+	#schema_list = get_table_column_schema(db_conn, table_name)
+	#for schema in schema_list:
+	#	column_list.append(schema[0])
+	#return column_list
+	column_list = []
+	rows = pragma_table_info(db_conn, table_name)
+	for row in rows:
+		#(0, 'id', 'INTEGER', 1, None, 1)
+		row = [*row,]
+		column_list.append(row[1])
+	return column_list
+"""
+column returned from PRAGMA_table_list: schema, name, type, ncol, wr, strict
+"""
+def table_schema_from_pragma(db_conn, table_name):
+	schema_list = []
+	pragma_table = ""
+	if table_name is not None:
+		pragma_table = "(%s)" % table_name
+	query_param = '''
+		PRAGMA
+			table_list%s
+	''' % pragma_table
+	param_data = ()
+	rows = execute(db_conn, query_param, param_data, True)
+	for row in rows:
+		row = [*row,]
+		schema_list.append(row)
+	return schema_list
+"""
+return columns: db_name, table_name, column_name
+"""
+def locate_db_table_column_using_pragma(db_conn, db_name, table_name, column_name):
+	result = []
+	query_param = '''
+		SELECT
+			t.schema, t.name, c.name
+		FROM 
+			PRAGMA_table_list t
+		JOIN
+			PRAGMA_table_info(t.Name) c
+	'''
+	where_param = ""
+	if db_name is not None or table_name is not None or column_name is not None:
+		data_list = [db_name, table_name, column_name]
+		for i in range(len(data_list)):
+			value = data_list[i]
+			if value is None:
+				continue
 
+			param_column = "t.schema"
+			if   0 == i:
+				param_column = "t.schema"
+			elif 1 == i:
+				param_column = "t.name"
+			elif 2 == i:
+				param_column = "c.name"
+
+			if len(where_param) > 0:
+				where_param = "%s AND " % (where_param)
+			where_param = "%s%s = \"%s\"" % (where_param, param_column, value)
+
+	#if db_name is not None or table_name is not None or column_name is not None:
+	#	if db_name is not None:
+	#		if len(where_param) > 0:
+	#			where_param = "%s AND " % (where_param)
+	#		where_param = "%st.schema = \"%s\"" % (where_param, db_name)
+	#	if table_name is not None:
+	#		if len(where_param) > 0:
+	#			where_param = "%s AND " % (where_param)
+	#		where_param = "%st.name = \"%s\"" % (where_param, table_name)
+	#	if column_name is not None:
+	#		if len(where_param) > 0:
+	#			where_param = "%s AND " % (where_param)
+	#		where_param = "%sc.name = \"%s\"" % (where_param, column_name)
+
+	if len(where_param) > 0:
+		query_param = "%s\n		WHERE\n			%s" % (query_param, where_param)
+	
+	param_data = ()
+	rows = execute(db_conn, query_param, param_data, True)
+	for row in rows:
+		row = [*row,]
+		result.append(row)
+	return result
+def all_db_table_column_list(db_conn):
+	result = []
+	rows = pragma_table_list_join_info(db_conn)
+	for row in rows:
+		#('main', 'release', 'table', 5, 0, 0, 0, 'sha256', 'TEXT', 0, None, 0)
+		row = [*row,]
+		db_name = row[0]
+		table_name = row[1]
+		column_name = row[7]
+		result.append([db_name, table_name, column_name])
+	return result
+
+def pragma_table_list_join_info(db_conn):
+	#query_param = 'SELECT * FROM PRAGMA_table_list t JOIN PRAGMA_table_info(t.Name) c'
+	query_param = '''
+		SELECT
+			t.schema, t.name, c.name
+		FROM 
+			PRAGMA_table_list t
+		JOIN
+			PRAGMA_table_info(t.Name) c
+	'''
+	param_data = ()
+	rows = execute(db_conn, query_param, param_data, True)
+	return rows
+def locate_table_dbs(db_conn, table_name):
+	db_list = []
+	rows = table_schema_from_pragma(db_conn, table_name)
+	for row in rows:
+		#print(row)
+		#(0, 'id', 'INTEGER', 1, None, 1)
+		#row = [*row,]
+		db_list.append(row[0])
+	return db_list
 def table_schema(db_conn, table_name):
 	query_param = '''
 		SELECT * FROM 
