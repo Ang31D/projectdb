@@ -57,15 +57,9 @@ class init(Script):
 		help_output += "\n%s" % "        multi               - match on multiple 'find' values; values separated by '|'"
 		help_output += "\n%s" % "        reverse             - negative match on 'find' value"
 		help_output += "\n"
-
-		"""
-			'format' options; controls the output
-		"""
-		help_output += "\n%s" % "    * Output Format"
-		help_output += "\n%s" % "      format='<option>'     # one option only; available options:"
-		help_output += "\n%s" % "        no-columns          - skip output of columns"
-		help_output += "\n%s" % "        wrap                - as 'no-columns' but does also wrap the output; replace char '\\n' with '\\n\\t'"
+		help_output += "\n%s" % "      multi-delim='<char>'  - specify a single character delimiter; used with match=multi"
 		help_output += "\n"
+
 		"""
 			'extra' options;  to control the output
 		"""
@@ -73,7 +67,18 @@ class init(Script):
 		help_output += "\n%s" % "      options='<option>'    # comma separated list of options; available options:"
 		help_output += "\n%s" % "        exclude-sysdbs      - exclude system tables during search"
 		help_output += "\n%s" % "        full-width          - does not strip field value when more then 100 in length"
+		help_output += "\n"
+
+		"""
+			'format' options; controls the output
+		"""
+		help_output += "\n%s" % "    * Output Format"
+		help_output += "\n%s" % "      format='<option>'     # one option only; available options:"
+		help_output += "\n%s" % "        no-columns          - skip output of columns"
+		help_output += "\n%s" % "        wrap                - as 'no-columns' + wrap the output; replace char '\\n' with '\\n\\t'"
+		help_output += "\n%s" % "        json                - output in json format"
 		help_output += "\n\n"
+
 		help_output += "\n%s" % " * Examples"
 		help_output += "\n%s" % "   --script search-db --script-args db=db/csrid.db options='exclude-sysdbs,full-width'"
 		help_output += "\n"
@@ -91,23 +96,26 @@ class init(Script):
 		if "_internal.verbose_mode" in self._extend:
 			verbose_mode = self._extend["_internal.verbose_mode"]
 
-		search_value = None
+		find_value = None
 		if "find" in args:
-			search_value = args["find"]["value"]
+			find_value = args["find"]["value"]
 
 		exclude_sysdbs = False
 		if "options" in args:
 			option_args = args["options"]["value"].split(",")
 			exclude_sysdbs = "exclude-sysdbs" in option_args
 
-		#db_name = "main" # default database
 		db_name = None
 		if 'db-name' in args:
 			db_name = args['db-name']['value']
 		
-		search_table = None
+		table_name = None
 		if 'table' in args:
-			search_table = args['table']['value']
+			table_name = args['table']['value']
+
+		column_name = None
+		if 'column' in args:
+			column_name = args['column']['value']
 
 		look_for = "field"
 		if "look-for" in args:
@@ -118,192 +126,23 @@ class init(Script):
 			return
 
 		if   "db" == look_for:
-			self._search_db_for_db_name(db_conn, search_value, exclude_sysdbs, args)
+			self._locate_db_table_column(db_conn, db_name, table_name, column_name, args)
 		elif "table" == look_for:
-			self._search_db_for_table(db_conn, db_name, search_value, exclude_sysdbs, args)
+			self._locate_db_table_column(db_conn, db_name, table_name, column_name, args)
 		elif "column" == look_for:
-			self._search_db_for_column(db_conn, db_name, search_table, search_value, exclude_sysdbs, args)
+			self._locate_db_table_column(db_conn, db_name, table_name, column_name, args)
 		elif "field" == look_for:
-			if search_value is None:
+			if find_value is None:
 				print("[!] error: %s; required 'find' option missing during '%s' look-up" % (self.name, look_for))
 				return
-			if search_table is None:
-				self._search_db_for_record_field(db_conn, db_name, search_value, exclude_sysdbs, args)
+			if table_name is None:
+				self._search_db_for_record_field(db_conn, db_name, find_value, exclude_sysdbs, args)
 			else:
-				self._search_db_for_record_in_table(db_conn, db_name, search_table, search_value, args)
+				self._search_db_for_record_in_table(db_conn, db_name, table_name, find_value, args)
 		else:
 			print("[!] warning: %s; look-for type not supported - '%s'" % (self.name, look_for))
 
 		db.close(db_conn)
-
-	def _search_db_for_db_name(self, db_conn, find_value, exclude_sysdbs, args):
-		db_list = db.databases(db_conn)
-
-		# // script options
-		# ----------------------------------------------------------------
-		match_condition = "contains"
-		if "match-cond" in args:
-			match_condition = args["match-cond"]["value"]
-
-		reverse_match = False
-		multi_match = False
-		if "match" in args:
-			match_args = args["match"]["value"].split(",")
-			reverse_match = "reverse" in match_args
-			multi_match = "multi" in match_args
-
-		out_format = None
-		if "format" in args:
-			out_format = args["format"]["value"]
-		# ----------------------------------------------------------------
-
-		table_list = []
-		for i in range(len(db_list)):
-			match_found = False
-			# convert tuple to list
-			db_list[i] = [*db_list[i],]
-			db_list[i] = db_list[i][:-1] # remove path to db file
-			db_list[i] = db_list[i][1:] # remove seq to db file
-			db_name = db_list[i][0]
-
-			if find_value is not None:
-				if multi_match:
-					for field_name in find_value.split("|"):
-						if self.match_on_condition(field_name, db_name, match_condition):
-							match_found = True
-							break
-				elif self.match_on_condition(find_value, db_name, match_condition):
-					match_found = True
-			else:
-				match_found = True
-			
-			if match_found:
-				if not reverse_match:
-					table_list.append([db_name])
-			elif reverse_match:
-				table_list.append([db_name])
-
-		headers = ['db']
-		#print(tabulate(table_list, headers=headers, tablefmt='github'))
-		self._output_table(table_list, headers, out_format)
-
-	def _search_db_for_table(self, db_conn, match_db_name, find_value, exclude_sysdbs, args):
-		tables = db.tables(db_conn, None, None)
-
-		# // script options
-		# ----------------------------------------------------------------
-		match_condition = "contains"
-		if "match-cond" in args:
-			match_condition = args["match-cond"]["value"]
-
-		reverse_match = False
-		multi_match = False
-		if "match" in args:
-			match_args = args["match"]["value"].split(",")
-			reverse_match = "reverse" in match_args
-			multi_match = "multi" in match_args
-
-		out_format = None
-		if "format" in args:
-			out_format = args["format"]["value"]
-		# ----------------------------------------------------------------
-
-		table_list = []
-		for table in tables:
-			match_found = False
-			db_name = table[0]
-			table_name = table[1]
-
-			if exclude_sysdbs and db.is_sys_table(table_name):
-				continue
-			if match_db_name is not None and match_db_name != db_name:
-				continue
-
-			if find_value is not None:
-				if multi_match:
-					for field_name in find_value.split("|"):
-						if self.match_on_condition(field_name, table_name, match_condition):
-							match_found = True
-							break
-				elif self.match_on_condition(find_value, table_name, match_condition):
-					match_found = True
-			else:
-				match_found = True
-
-			if match_found:
-				if not reverse_match:
-					table_list.append([db_name, table_name])
-			elif reverse_match:
-				table_list.append([db_name, table_name])
-	
-		headers = ['db', 'table']
-		#table_list = list(map(lambda n: n[0:2], table_list))
-		#print(tabulate(table_list, headers=headers, tablefmt='github'))
-		self._output_table(table_list, headers, out_format)
-
-	def _search_db_for_column(self, db_conn, match_db_name, match_table_name, find_value, exclude_sysdbs, args):
-		tables = db.tables(db_conn, None, None)
-
-		# // script options
-		# ----------------------------------------------------------------
-		match_condition = "contains"
-		if "match-cond" in args:
-			match_condition = args["match-cond"]["value"]
-
-		reverse_match = False
-		multi_match = False
-		if "match" in args:
-			match_args = args["match"]["value"].split(",")
-			reverse_match = "reverse" in match_args
-			multi_match = "multi" in match_args
-
-		out_format = None
-		if "format" in args:
-			out_format = args["format"]["value"]
-		# ----------------------------------------------------------------
-		
-		table_list = []
-		for table in tables:
-			db_name = table[0]
-			table_name = table[1]
-
-			if exclude_sysdbs and db.is_sys_table(table_name):
-				continue
-			if match_db_name is not None and match_db_name != db_name:
-				continue
-			if match_table_name is not None and match_table_name != table_name:
-				continue
-			columns = db.columns(db_conn, db_name, table_name)
-			for i in range(len(columns)):
-				match_found = False
-				# convert tuple to list
-				columns[i] = [*columns[i],]
-				column_name = columns[i][1]
-
-				if find_value is not None:
-					if multi_match:
-						for field_name in find_value.split("|"):
-							if self.match_on_condition(field_name, column_name, match_condition):
-								match_found = True
-								break
-					elif self.match_on_condition(find_value, column_name, match_condition):
-						match_found = True
-				else:
-					match_found = True
-
-				if match_found:
-					if not reverse_match:
-						table_list.append([db_name, table_name, column_name])
-				elif reverse_match:
-					#table_list.append(row_list)
-					table_list.append([db_name, table_name, column_name])
-
-				# prefix column_info with db & table name
-				#table_list.append([db_name, table_name, column_name])
-	
-		headers = ['db', 'table', 'column']
-		#print(tabulate(table_list, headers=headers, tablefmt='github'))
-		self._output_table(table_list, headers, out_format)
 
 	def _search_db_for_record_field(self, db_conn, match_db_name, find_value, exclude_sysdbs, args):
 		tables = db.tables(db_conn, None, None)
@@ -344,14 +183,8 @@ class init(Script):
 			if db.is_sys_table(table_name) and exclude_sysdbs:
 				continue
 
-			#table_columns = db.table_columns(db_conn, db_name, table_name)
-			#print(table_columns)
 			table_columns = db.columns(db_conn, db_name, table_name)
 			table_columns = list(map(lambda n: n[1], table_columns))
-			#print(table_columns)
-			#for i in range(len(columns)):
-			#	# convert tuple to list
-			#	columns[i] = [*columns[i],]
 
 			query = '''
 				SELECT * FROM %s
@@ -384,9 +217,135 @@ class init(Script):
 		headers = ['db', 'table', 'column', 'value']
 		self._output_table(table_list, headers, out_format)
 
-	def _search_db_for_record_in_table(self, db_conn, db_name, table_name, find_value, args):
-		tables = db.tables(db_conn, db_name, None)
+	def _locate_db_table_column(self, db_conn, locate_db, locate_table, locate_column, args):
+		# // script options
+		# ----------------------------------------------------------------
+		look_for = None
+		if "look-for" in args:
+			look_for = args["look-for"]["value"]
+		
+		find_value = None
+		if "find" in args:
+			find_value = args["find"]["value"]
 
+		match_condition = "contains"
+		if "match-cond" in args:
+			match_condition = args["match-cond"]["value"]
+
+		reverse_match = False
+		multi_match = False
+		if "match" in args:
+			match_args = args["match"]["value"].split(",")
+			reverse_match = "reverse" in match_args
+			multi_match = "multi" in match_args
+		multi_delim = "|"
+		if "multi-delim" in args:
+			multi_delim = args["multi-delim"]["value"]
+			if len(multi_delim) != 1:
+				print("[!] error: %s; invalid \"multi-delim\" option value - '%s'" % (self.name, multi_delim))
+				return
+
+		exclude_sysdbs = False
+		if "options" in args:
+			option_args = args["options"]["value"].split(",")
+			exclude_sysdbs = "exclude-sysdbs" in option_args
+
+		out_format = None
+		if "format" in args:
+			out_format = args["format"]["value"]
+		# ----------------------------------------------------------------
+		if look_for is None:
+			print("[!] warning: %s; locate type not defined" % (self.name))
+			print("(use 'look_for=<type>')")
+			return
+		if   "db" == look_for:
+			pass
+		elif "table" == look_for:
+			pass
+		elif "column" == look_for:
+			pass
+		else:
+			print("[!] error: %s; invalid locate type - '%s'" % (self.name, look_for))
+			return
+		
+		rows = db.locate_db_table_column_using_pragma(db_conn, locate_db, locate_table, locate_column)
+
+		dup_list = []
+		table_list = []
+		for row in rows:
+			row_list = []
+			match_found = False
+
+			db_name = row[0]
+			table_name = row[1]
+			column_name = row[2]
+
+			if exclude_sysdbs and db.is_sys_table(table_name):
+				continue
+
+			match_on = ''
+			if   "db" == look_for:
+				match_on = db_name
+			elif "table" == look_for:
+				match_on = table_name
+			elif "column" == look_for:
+				match_on = column_name
+			if find_value is not None:
+				#if not self.match_on_condition(find_value, match_on, match_condition):
+				#	continue
+				if not multi_match:
+					#if field_name is not None:
+					#	if not self.match_on_condition(field_name, match_on, match_condition):
+					#		continue
+					if self.match_on_condition(find_value, match_on, match_condition):
+						match_found = True
+				else:
+					for match_on_value in find_value.split(multi_delim):
+						if self.match_on_condition(match_on_value, match_on, match_condition):
+							match_found = True
+							break
+			else:
+				match_found = True
+			
+			if match_found:
+				if reverse_match:
+					match_found = False
+			elif reverse_match:
+				match_found = True
+			
+			if match_found:
+				row_item = []
+				if   "db" == look_for:
+					#table_list.append([db_name])
+					row_item.append(db_name)
+				elif "table" == look_for:
+					#table_list.append([db_name, table_name])
+					row_item.append(db_name)
+					row_item.append(table_name)
+				elif "column" == look_for:
+					#table_list.append([db_name, table_name, column_name])
+					row_item.append(db_name)
+					row_item.append(table_name)
+					row_item.append(column_name)
+				if len(row_item) > 0:
+					dup_id = '|'.join(row_item)
+					if dup_id in dup_list:
+						continue
+					table_list.append(row_item)
+					dup_list.append(dup_id)
+
+			#table_list.append(row)
+		#headers = ['db', 'table', 'column']
+		headers = ['db']
+		if   "db" == look_for:
+			headers = ['db']
+		elif "table" == look_for:
+			headers = ['db', 'table']
+		elif "column" == look_for:
+			headers = ['db', 'table', 'column']
+		self._output_table(table_list, headers, out_format)
+
+	def _search_db_for_record_in_table(self, db_conn, match_db_name, table_name, find_value, args):
 		# // script options
 		# ----------------------------------------------------------------
 		out_full_width = False
@@ -408,24 +367,61 @@ class init(Script):
 			match_args = args["match"]["value"].split(",")
 			reverse_match = "reverse" in match_args
 			multi_match = "multi" in match_args
+		multi_delim = "|"
+		if "multi-delim" in args:
+			multi_delim = args["multi-delim"]["value"]
+			if len(match_delim) != 1:
+				print("[!] error: %s; invalid \"multi-delim\" option value - '%s'" % (self.name, multi_delim))
+				return
 
 		out_format = None
 		if "format" in args:
 			out_format = args["format"]["value"]
 		# ----------------------------------------------------------------
 
-		#headers = ['db', 'table', 'column', 'value']
+		#tables = db.tables(db_conn, match_db_name, table_name)
+
 		table_list = []
-		if db_name is None:
+		if match_db_name is None:
 			if not db.table_exists(db_conn, table_name):
 				print("[!] warning: %s; table not found - '%s'" % (self.name, table_name))
 				return
-		elif not db.table_exists_in_db(db_conn, db_name, table_name):
-			print("[!] warning: %s; table in db not found - '%s.%s'" % (self.name, db_name, table_name))
+		elif not db.table_exists_in_db(db_conn, match_db_name, table_name):
+			print("[!] warning: %s; table in db not found - '%s.%s'" % (self.name, match_db_name, table_name))
 			return
-
 		
-		table_columns = db.table_columns(db_conn, db_name, table_name)
+		table_columns = []
+		if match_db_name is None:
+			#table_columns = db.column_names(db_conn, table_name)
+			table_columns = db.get_table_columns(db_conn, table_name)
+		else:
+			table_columns = db.table_columns(db_conn, match_db_name, table_name)
+		#print("-" * 88)
+		#data = db.pragma_table_info(db_conn, table_name)
+		#print(data)
+		#data = db.table_schema_from_pragma(db_conn, table_name)
+		#data = db.table_schema_from_pragma(db_conn, None)
+		#print(data)
+		#data = db.get_table_column_schema(db_conn, table_name)
+		#print(data)
+		#data = db.get_table_columns(db_conn, table_name)
+		#print(data)
+		#data = db.locate_table_dbs(db_conn, table_name)
+		#print(data)
+		#data = db.pragma_table_list_join_info(db_conn)
+		##data = db.all_db_table_column_list(db_conn)
+		#print(data)
+		#rows = db.locate_db_table_column_using_pragma(db_conn, None, None, None)
+		#for row in rows:
+		#	print(row)
+		#print("-" * 88)
+		#print("")
+		if len(table_columns) == 0:
+			if match_db_name is None:
+				print("[!] warning: %s; table columns not found - '%s'" % (self.name, table_name))
+			else:
+				print("[!] warning: %s; table columns in db not found - '%s.%s'" % (self.name, match_db_name, table_name))
+			return
 		headers = table_columns
 
 		query = '''
@@ -454,11 +450,7 @@ class init(Script):
 					if self.match_on_condition(find_value, field_value, match_condition):
 						match_found = True
 				else:
-					if field_name is not None:
-						if not self.match_on_condition(field_name, column_name, match_condition):
-							continue
-					find_values = find_value.split("|")
-					for match_on_value in find_values:
+					for match_on_value in find_value.split(multi_delim):
 						if self.match_on_condition(match_on_value, field_value, match_condition):
 							match_found = True
 							break
