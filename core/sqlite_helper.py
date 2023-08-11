@@ -344,20 +344,6 @@ def locate_db_table_column_using_pragma(db_conn, db_name, table_name, column_nam
 				where_param = "%s AND " % (where_param)
 			where_param = "%s%s = \"%s\"" % (where_param, param_column, value)
 
-	#if db_name is not None or table_name is not None or column_name is not None:
-	#	if db_name is not None:
-	#		if len(where_param) > 0:
-	#			where_param = "%s AND " % (where_param)
-	#		where_param = "%st.schema = \"%s\"" % (where_param, db_name)
-	#	if table_name is not None:
-	#		if len(where_param) > 0:
-	#			where_param = "%s AND " % (where_param)
-	#		where_param = "%st.name = \"%s\"" % (where_param, table_name)
-	#	if column_name is not None:
-	#		if len(where_param) > 0:
-	#			where_param = "%s AND " % (where_param)
-	#		where_param = "%sc.name = \"%s\"" % (where_param, column_name)
-
 	if len(where_param) > 0:
 		query_param = "%s\n		WHERE\n			%s" % (query_param, where_param)
 	
