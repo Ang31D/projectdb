@@ -37,9 +37,9 @@ class init(Script):
 		help_output += "\n%s" % "  * Options (optional):"
 		help_output += "\n%s" % "    find='<value>'          - value to search for; if omitted, match on any with look-for 'db', 'table' or 'column'"
 		help_output += "\n%s" % "    look-for='<type>'       - what to find; valid types: 'db', 'table', 'column', 'field' (default)"
-		help_output += "\n%s" % "    table='<table_name>'    - the table to search in"
-		help_output += "\n%s" % "    column='<column_name>'  - the column to match on; comma separated list"
-		help_output += "\n%s" % "    db-name='<db_name>'     - overrides default (\"main\") db which the table exists in"
+		help_output += "\n%s" % "    db='<db_name>'          - db to search from or filter on"
+		help_output += "\n%s" % "    table='<table_name>'    - table to search in or filter on"
+		help_output += "\n%s" % "    column='<column_name>'  - column to match field value on or filter on; comma separated list"
 		help_output += "\n"
 		"""
 			'match' options; conditionalizes the 'find' match
@@ -54,7 +54,7 @@ class init(Script):
 		help_output += "\n"
 
 		help_output += "\n%s" % "      match='<option>'      # comma separated list of options; available options:"
-		help_output += "\n%s" % "        multi               - match on multiple 'find' values; values separated by '|'"
+		help_output += "\n%s" % "        multi-value         - match on multiple ('find' option) values; values separated by '|'"
 		help_output += "\n%s" % "        reverse             - negative match on 'find' value"
 		help_output += "\n"
 		help_output += "\n%s" % "      multi-delim='<char>'  - specify a single character delimiter; used with match=multi"
@@ -75,7 +75,7 @@ class init(Script):
 		help_output += "\n%s" % "    * Output Format"
 		help_output += "\n%s" % "      format='<option>'     # one option only; available options:"
 		help_output += "\n%s" % "        no-columns          - skip output of columns"
-		help_output += "\n%s" % "        wrap                - as 'no-columns' + wrap the output; replace char '\\n' with '\\n\\t'"
+		help_output += "\n%s" % "        wrap                - as 'no-columns' + wraps output; replace char '\\n' with '\\n\\t'"
 		help_output += "\n%s" % "        json                - output in json format"
 		help_output += "\n\n"
 
@@ -106,8 +106,8 @@ class init(Script):
 			exclude_sysdbs = "exclude-sysdbs" in option_args
 
 		db_name = None
-		if 'db-name' in args:
-			db_name = args['db-name']['value']
+		if 'db' in args:
+			db_name = args['db']['value']
 		
 		table_name = None
 		if 'table' in args:
@@ -121,6 +121,10 @@ class init(Script):
 		if "look-for" in args:
 			look_for = args["look-for"]["value"]
 
+		match_condition = None
+		if "match-cond" in args:
+			match_condition = args["match-cond"]["value"]
+
 		db_conn = self._extend["sqlite.db_conn"]
 		if db_conn is None:
 			return
@@ -133,10 +137,12 @@ class init(Script):
 			self._locate_db_table_column(db_conn, db_name, table_name, column_name, args)
 		elif "field" == look_for:
 			if find_value is None:
-				print("[!] error: %s; required 'find' option missing during '%s' look-up" % (self.name, look_for))
-				return
+				if match_condition is None or match_condition != "has-value":
+					print("[!] error: %s; required 'find' option missing during '%s' look-up" % (self.name, look_for))
+					return
 			if table_name is None:
-				self._search_db_for_record_field(db_conn, db_name, find_value, exclude_sysdbs, args)
+				#self._search_db_for_record_field(db_conn, db_name, find_value, exclude_sysdbs, args)
+				self._search_db_for_record_field(db_conn, db_name, column_name, find_value, exclude_sysdbs, args)
 			else:
 				self._search_db_for_record_in_table(db_conn, db_name, table_name, find_value, args)
 		else:
@@ -144,12 +150,12 @@ class init(Script):
 
 		db.close(db_conn)
 
-	def _search_db_for_record_field(self, db_conn, match_db_name, find_value, exclude_sysdbs, args):
+	def _search_db_for_record_field(self, db_conn, filter_on_db_name, filter_on_column, find_value, exclude_sysdbs, args):
 		tables = db.tables(db_conn, None, None)
 
-		if find_value is None:
-			print("[!] error: %s; missing 'find' option" % self.name)
-			return
+		#if find_value is None:
+		#	print("[!] error: %s; missing 'find' option" % self.name)
+		#	return
 
 		# // script options
 		# ----------------------------------------------------------------
@@ -171,6 +177,13 @@ class init(Script):
 		out_format = None
 		if "format" in args:
 			out_format = args["format"]["value"]
+
+		filter_by_columns = []
+		if filter_on_column is not None:
+			for column_name in filter_on_column.split(","):
+				if column_name.strip() not in filter_by_columns:
+					filter_by_columns.append(column_name.strip())
+		print("\nfilter_by_columns: %s\n" % filter_by_columns)
 		# ----------------------------------------------------------------
 
 		table_list = []
@@ -178,13 +191,15 @@ class init(Script):
 			db_name = table[0]
 			table_name = table[1]
 
-			if match_db_name is not None and match_db_name != db_name:
+			if filter_on_db_name is not None and filter_on_db_name != db_name:
 				continue
-			if db.is_sys_table(table_name) and exclude_sysdbs:
+			if exclude_sysdbs and db.is_sys_table(table_name):
 				continue
 
 			table_columns = db.columns(db_conn, db_name, table_name)
 			table_columns = list(map(lambda n: n[1], table_columns))
+			print("%s: %s" % (table_name, table_columns))
+			# ^-- DEBUG
 
 			query = '''
 				SELECT * FROM %s
@@ -199,6 +214,9 @@ class init(Script):
 					match_found = False
 					column_name = table_columns[i]
 					column_value = row[i]
+
+					if len(filter_by_columns) > 0 and column_name not in filter_by_columns:
+						continue
 
 					if find_value is not None:
 						if self.match_on_condition(find_value, column_value, match_condition):
@@ -237,7 +255,7 @@ class init(Script):
 		if "match" in args:
 			match_args = args["match"]["value"].split(",")
 			reverse_match = "reverse" in match_args
-			multi_match = "multi" in match_args
+			multi_match = "multi-value" in match_args
 		multi_delim = "|"
 		if "multi-delim" in args:
 			multi_delim = args["multi-delim"]["value"]
@@ -254,7 +272,8 @@ class init(Script):
 		if "format" in args:
 			out_format = args["format"]["value"]
 		# ----------------------------------------------------------------
-		if look_for is None:
+
+		if look_for is None: # this should never happen
 			print("[!] warning: %s; locate type not defined" % (self.name))
 			print("(use 'look_for=<type>')")
 			return
@@ -269,6 +288,10 @@ class init(Script):
 			return
 		
 		rows = db.locate_db_table_column_using_pragma(db_conn, locate_db, locate_table, locate_column)
+		#rows = db.locate_db_table_or_column_schema_using_pragma(db_conn, locate_db, locate_table, locate_column)
+		#for row in rows:
+		#	print(row)
+		#return
 
 		dup_list = []
 		table_list = []
@@ -291,12 +314,7 @@ class init(Script):
 			elif "column" == look_for:
 				match_on = column_name
 			if find_value is not None:
-				#if not self.match_on_condition(find_value, match_on, match_condition):
-				#	continue
 				if not multi_match:
-					#if field_name is not None:
-					#	if not self.match_on_condition(field_name, match_on, match_condition):
-					#		continue
 					if self.match_on_condition(find_value, match_on, match_condition):
 						match_found = True
 				else:
@@ -366,11 +384,11 @@ class init(Script):
 		if "match" in args:
 			match_args = args["match"]["value"].split(",")
 			reverse_match = "reverse" in match_args
-			multi_match = "multi" in match_args
+			multi_match = "multi-value" in match_args
 		multi_delim = "|"
 		if "multi-delim" in args:
 			multi_delim = args["multi-delim"]["value"]
-			if len(match_delim) != 1:
+			if len(multi_delim) != 1:
 				print("[!] error: %s; invalid \"multi-delim\" option value - '%s'" % (self.name, multi_delim))
 				return
 
@@ -480,18 +498,15 @@ class init(Script):
 		elif "has-value" == match_condition:
 			if len(str(match_on_value)) > 0:
 				match_found = True
+		elif "empty" == match_condition:
+			if len(str(match_on_value)) == 0:
+				match_found = True
 		return match_found
 
 	def _output_table(self, table_list, headers, out_format=None):
 		tablefmt='github'
 		wrap_data = False
 		out_json = False
-		if "_internal.args.out_json" in self._extend:
-			out_json = self._extend["_internal.args.out_json"]
-		
-		if out_json:
-			self._output_table_as_json(table_list, headers, out_format)
-			return
 
 		if out_format is not None:
 			if out_format == "no-columns" or out_format == "wrap":
@@ -499,6 +514,15 @@ class init(Script):
 				headers = []
 			if out_format == "wrap":
 				wrap_data = True
+
+		if "json" == out_format:
+			out_json = True
+		elif "_internal.args.out_json" in self._extend:
+			out_json = self._extend["_internal.args.out_json"]
+		
+		if out_json:
+			self._output_table_as_json(table_list, headers, out_format)
+			return
 		
 		out_data = tabulate(table_list, headers=headers, tablefmt=tablefmt)
 
