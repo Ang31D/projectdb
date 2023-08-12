@@ -353,6 +353,52 @@ def locate_db_table_column_using_pragma(db_conn, db_name, table_name, column_nam
 		row = [*row,]
 		result.append(row)
 	return result
+
+"""
+return columns: db_name, table_name, column_name
+"""
+def locate_db_table_or_column_schema_using_pragma(db_conn, db_name, table_name, column_name):
+	result = []
+	query_param = '''
+		SELECT
+			*
+		FROM 
+			PRAGMA_table_list t
+		JOIN
+			PRAGMA_table_info(t.Name) c
+	'''
+	where_param = ""
+	if db_name is not None or table_name is not None or column_name is not None:
+		data_list = [db_name, table_name, column_name]
+		for i in range(len(data_list)):
+			param_value = data_list[i]
+			if param_value is None:
+				continue
+
+			param_column = "t.schema"
+			if   0 == i:
+				param_column = "t.schema"
+			elif 1 == i:
+				param_column = "t.name"
+				#if data_list[0] is not None:
+				#	param_value = "%s.%s" % (data_list[0], param_value)
+			elif 2 == i:
+				param_column = "c.name"
+
+			if len(where_param) > 0:
+				where_param = "%s AND " % (where_param)
+			where_param = "%s%s = \"%s\"" % (where_param, param_column, param_value)
+
+	if len(where_param) > 0:
+		query_param = "%s\n		WHERE\n			%s" % (query_param, where_param)
+	
+	param_data = ()
+	rows = execute(db_conn, query_param, param_data, True)
+	for row in rows:
+		row = [*row,]
+		result.append(row)
+	return result
+
 def all_db_table_column_list(db_conn):
 	result = []
 	rows = pragma_table_list_join_info(db_conn)
