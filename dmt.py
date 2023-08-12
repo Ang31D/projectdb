@@ -188,6 +188,7 @@ def do_action_enum_tables(db_conn, args):
 	tables = db.tables(db_conn, db_name, None)
 
 	table_list = []
+	db_list = []
 	for table in tables:
 		table_name = table[1]
 		if db.is_sys_table(table_name) and args.exclude_sysdbs:
@@ -211,6 +212,9 @@ def do_action_enum_tables(db_conn, args):
 			# convert tuple to list
 			table_list[i] = [*table_list[i],]
 
+			db_name = table_list[i][0]
+			if db_name not in db_list:
+				db_list.append(db_name)
 			table_name = table_list[i][1]
 			if not args.schema and args.count:
 				# add records count to table item
@@ -218,7 +222,7 @@ def do_action_enum_tables(db_conn, args):
 				table_list[i].append(record_count)
 		
 		if not args.out_json:
-			print("[*] db tables: %s" % len(table_list))
+			print("[*] db(%s) tables: %s" % (len(db_list), len(table_list)))
 			
 			if not args.schema and not args.count:
 				print("[?] (use '--count' to show record count for each table)")
