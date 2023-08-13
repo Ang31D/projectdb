@@ -660,7 +660,7 @@ class init(Script):
 		if "eq" == match_condition:
 			if int(match_on_num) == int(find_num):
 				match_found = True
-		if "ne" == match_condition:
+		elif "ne" == match_condition:
 			if int(match_on_num) != int(find_num):
 				match_found = True
 		elif "lt" == match_condition:
