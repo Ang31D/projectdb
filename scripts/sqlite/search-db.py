@@ -135,6 +135,12 @@ class init(Script):
 			self._locate_db_table_column(db_conn, db_name, table_name, column_name, args)
 		elif "column" == look_for:
 			self._locate_db_table_column(db_conn, db_name, table_name, column_name, args)
+		elif "db-schema" == look_for:
+			self._locate_db_table_column_schema(db_conn, db_name, table_name, column_name, args)
+		elif "table-schema" == look_for:
+			self._locate_db_table_column_schema(db_conn, db_name, table_name, column_name, args)
+		elif "column-schema" == look_for:
+			self._locate_db_table_column_schema(db_conn, db_name, table_name, column_name, args)
 		elif "field" == look_for:
 			if find_value is None:
 				if match_condition is None or match_condition != "has-value":
@@ -235,6 +241,106 @@ class init(Script):
 		headers = ['db', 'table', 'column', 'value']
 		self._output_table(table_list, headers, out_format)
 
+	def _locate_db_table_column_schema(self, db_conn, locate_db, locate_table, locate_column, args):
+		# // script options
+		# ----------------------------------------------------------------
+		look_for = None
+		if "look-for" in args:
+			look_for = args["look-for"]["value"]
+			if look_for.endswith("-schema"):
+				look_for = look_for[0:len(look_for)-len("-schema")]
+		
+		find_value = None
+		if "find" in args:
+			find_value = args["find"]["value"]
+
+		match_condition = "contains"
+		if "match-cond" in args:
+			match_condition = args["match-cond"]["value"]
+
+		reverse_match = False
+		multi_match = False
+		if "match" in args:
+			match_args = args["match"]["value"].split(",")
+			reverse_match = "reverse" in match_args
+			multi_match = "multi-value" in match_args
+		multi_delim = "|"
+		if "multi-delim" in args:
+			multi_delim = args["multi-delim"]["value"]
+			if len(multi_delim) != 1:
+				print("[!] error: %s; invalid \"multi-delim\" option value - '%s'" % (self.name, multi_delim))
+				return
+
+		exclude_sysdbs = False
+		if "options" in args:
+			option_args = args["options"]["value"].split(",")
+			exclude_sysdbs = "exclude-sysdbs" in option_args
+
+		out_format = None
+		if "format" in args:
+			out_format = args["format"]["value"]
+		# ----------------------------------------------------------------
+
+		if look_for is None: # this should never happen
+			print("[!] warning: %s; locate type not defined" % (self.name))
+			print("(use 'look_for=<type>')")
+			return
+		
+		headers = []
+		rows = []
+		if   "db" == look_for:
+			headers = ['seq', 'name', 'file']
+			rows = db.db_schema_from_pragma(db_conn, locate_db)
+		elif "table" == look_for:
+			headers = ['schema', 'name', 'type', 'ncol', 'wr', 'strict']
+			#rows = db.table_schema_from_pragma(db_conn, locate_db, locate_table)
+			rows = db.table_schema_from_pragma(db_conn, locate_db, None)
+		elif "column" == look_for:
+			headers += ['schema', 'table', 'cid', 'name', 'type', 'notnull', 'dflt_value', 'pk']
+			#rows = db.column_schema_from_pragma(db_conn, locate_db, locate_table, locate_column)
+			rows = db.column_schema_from_pragma(db_conn, locate_db, None, None)
+		else:
+			print("[!] error: %s; invalid locate type - '%s'" % (self.name, look_for))
+			return
+
+		if rows is None:
+			print("[!] error: %s; failed to fetch schema for '%s'" % (self.name, look_for))
+			return
+
+		table_list = []
+		if find_value is not None:
+			for row in rows:
+				match_found = False
+
+				row_item = []
+				for i in range(len(row)):
+					field = row[i]
+					field_name = headers[i]
+					row_item.append(field)
+					if locate_column is not None and field_name not in locate_column.split(","):
+						continue
+					if not multi_match:
+						if self.match_on_condition(find_value, field, match_condition):
+							match_found = True
+					else:
+						for match_on_value in find_value.split(multi_delim):
+							if self.match_on_condition(match_on_value, field, match_condition):
+								match_found = True
+								break
+				
+				if match_found:
+					if reverse_match:
+						match_found = False
+				elif reverse_match:
+					match_found = True
+				
+				if match_found:
+					table_list.append(row_item)
+		else:
+			table_list = rows
+
+		self._output_table(table_list, headers, out_format)
+	
 	def _locate_db_table_column(self, db_conn, locate_db, locate_table, locate_column, args):
 		# // script options
 		# ----------------------------------------------------------------
@@ -288,10 +394,6 @@ class init(Script):
 			return
 		
 		rows = db.locate_db_table_column_using_pragma(db_conn, locate_db, locate_table, locate_column)
-		#rows = db.locate_db_table_or_column_schema_using_pragma(db_conn, locate_db, locate_table, locate_column)
-		#for row in rows:
-		#	print(row)
-		#return
 
 		dup_list = []
 		table_list = []
@@ -334,14 +436,11 @@ class init(Script):
 			if match_found:
 				row_item = []
 				if   "db" == look_for:
-					#table_list.append([db_name])
 					row_item.append(db_name)
 				elif "table" == look_for:
-					#table_list.append([db_name, table_name])
 					row_item.append(db_name)
 					row_item.append(table_name)
 				elif "column" == look_for:
-					#table_list.append([db_name, table_name, column_name])
 					row_item.append(db_name)
 					row_item.append(table_name)
 					row_item.append(column_name)
@@ -352,8 +451,6 @@ class init(Script):
 					table_list.append(row_item)
 					dup_list.append(dup_id)
 
-			#table_list.append(row)
-		#headers = ['db', 'table', 'column']
 		headers = ['db']
 		if   "db" == look_for:
 			headers = ['db']
