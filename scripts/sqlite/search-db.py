@@ -45,19 +45,20 @@ class init(Script):
 			'match' options; conditionalizes the 'find' match
 		"""
 		help_output += "\n%s" % "    * Match"
-		help_output += "\n%s" % "      match-cond='<option>' # one option only; available options:"
-		help_output += "\n%s" % "        contains            - <field> contains <value> (default)"
-		help_output += "\n%s" % "        exact               - <field> match on exact <value>"
-		help_output += "\n%s" % "        startswith          - <field> starts with <value>"
-		help_output += "\n%s" % "        endswith            - <field> ends with <value>"
+		help_output += "\n%s" % "      match-cond='<cond>'   # match condition against ('find' option) <value>:"
+		help_output += "\n%s" % "        contains            - <field> contains <string> (default)"
+		help_output += "\n%s" % "        exact               - <field> match on exact <string>"
+		help_output += "\n%s" % "        startswith          - <field> starts with <string>"
+		help_output += "\n%s" % "        endswith            - <field> ends with <string>"
 		help_output += "\n%s" % "        has-value           - <field> is not blank"
+		help_output += "\n%s" % "        eq, lt, le, gt, ge  - <field> ==, <, <=, >, >= <num>"
 		help_output += "\n"
 
 		help_output += "\n%s" % "      match='<option>'      # comma separated list of options; available options:"
 		help_output += "\n%s" % "        multi-value         - match on multiple ('find' option) values; values separated by '|'"
 		help_output += "\n%s" % "        reverse             - negative match on 'find' value"
 		help_output += "\n"
-		help_output += "\n%s" % "      multi-delim='<char>'  - specify a single character delimiter; used with match=multi"
+		help_output += "\n%s" % "      multi-delim='<char>'  - single character delimiter; used with match=multi-value"
 		help_output += "\n"
 
 		"""
@@ -283,22 +284,24 @@ class init(Script):
 
 		if look_for is None: # this should never happen
 			print("[!] warning: %s; locate type not defined" % (self.name))
-			print("(use 'look_for=<type>')")
+			print("(use 'look-for=<type>')")
 			return
 		
 		headers = []
 		rows = []
 		if   "db" == look_for:
 			headers = ['seq', 'name', 'file']
-			rows = db.db_schema_from_pragma(db_conn, locate_db)
+			#rows = db.db_schema_from_pragma(db_conn, locate_db)
+			rows = db.db_schema_from_pragma(db_conn, None)
+			#return
 		elif "table" == look_for:
 			headers = ['schema', 'name', 'type', 'ncol', 'wr', 'strict']
 			#rows = db.table_schema_from_pragma(db_conn, locate_db, locate_table)
-			rows = db.table_schema_from_pragma(db_conn, locate_db, None)
+			rows = db.table_schema_from_pragma(db_conn, None, None)
 		elif "column" == look_for:
 			headers += ['schema', 'table', 'cid', 'name', 'type', 'notnull', 'dflt_value', 'pk']
 			#rows = db.column_schema_from_pragma(db_conn, locate_db, locate_table, locate_column)
-			rows = db.column_schema_from_pragma(db_conn, locate_db, None, None)
+			rows = db.column_schema_from_pragma(db_conn, None, None, None)
 		else:
 			print("[!] error: %s; invalid locate type - '%s'" % (self.name, look_for))
 			return
@@ -307,11 +310,52 @@ class init(Script):
 			print("[!] error: %s; failed to fetch schema for '%s'" % (self.name, look_for))
 			return
 
-		table_list = []
-		if find_value is not None:
-			for row in rows:
-				match_found = False
+		filter_by_dbs = []
+		if locate_db is not None:
+			filter_by_dbs = locate_db.split(",")
+		filter_by_tables = []
+		if locate_table is not None:
+			filter_by_tables = locate_table.split(",")
+		filter_by_columns = []
+		if locate_column is not None:
+			filter_by_columns = locate_column.split(",")
 
+		index_pos_db = -1
+		index_pos_table = -1
+		index_pos_column = -1
+		if "db" == look_for:
+			index_pos_db = 0
+		if "table" == look_for:
+			index_pos_db = 0
+			index_pos_table = 1
+		elif "column" == look_for:
+			index_pos_db = 0
+			index_pos_table = 1
+			index_pos_column = 3
+
+		table_list = []
+		print(filter_by_columns)
+		print(index_pos_column)
+		for row in rows:
+			match_found = False
+
+			if exclude_sysdbs and index_pos_table >= 0 and db.is_sys_table(row[index_pos_table]):
+				continue
+
+			if find_value is None:
+				if len(filter_by_dbs) > 0 and index_pos_table >= 0:
+					if row[index_pos_db] not in filter_by_dbs:
+						continue
+			if len(filter_by_tables) > 0 and index_pos_table >= 0:
+				if row[index_pos_table] not in filter_by_tables:
+					continue
+			if "column" != look_for:
+				if len(filter_by_columns) > 0 and index_pos_column >= 0:
+					print(row[index_pos_column])
+					if row[index_pos_column] not in filter_by_columns:
+						continue
+
+			if find_value is not None:
 				row_item = []
 				for i in range(len(row)):
 					field = row[i]
@@ -327,17 +371,18 @@ class init(Script):
 							if self.match_on_condition(match_on_value, field, match_condition):
 								match_found = True
 								break
+			else:
+				match_found = True
+
+			if match_found:
+				if reverse_match:
+					match_found = False
+			elif reverse_match:
+				match_found = True
 				
-				if match_found:
-					if reverse_match:
-						match_found = False
-				elif reverse_match:
-					match_found = True
-				
-				if match_found:
-					table_list.append(row_item)
-		else:
-			table_list = rows
+			if match_found:
+				#table_list.append(row_item)
+				table_list.append(row)
 
 		self._output_table(table_list, headers, out_format)
 	
@@ -597,6 +642,38 @@ class init(Script):
 				match_found = True
 		elif "empty" == match_condition:
 			if len(str(match_on_value)) == 0:
+				match_found = True
+		elif match_condition in self._valid_number_conditions():
+			if str(match_on_value).isnumeric() and str(find_value).isnumeric():
+				match_found = self._match_on_number_condition(int(find_value), int(match_on_value), match_condition)
+		return match_found
+	def _valid_number_conditions(self):
+		return ["ne", "eq", "lt", "le", "gt", "ge"]
+	def _match_on_number_condition(self, find_num, match_on_num, match_condition):
+		match_found = False
+
+		if match_condition not in self._valid_number_conditions():
+			return match_found
+		if not str(find_num).isnumeric() or not str(match_on_num).isnumeric():
+			return match_found
+
+		if "eq" == match_condition:
+			if int(match_on_num) == int(find_num):
+				match_found = True
+		if "ne" == match_condition:
+			if int(match_on_num) != int(find_num):
+				match_found = True
+		elif "lt" == match_condition:
+			if int(match_on_num) < int(find_num):
+				match_found = True
+		elif "le" == match_condition:
+			if int(match_on_num) <= int(find_num):
+				match_found = True
+		elif "gt" == match_condition:
+			if int(match_on_num) > int(find_num):
+				match_found = True
+		elif "ge" == match_condition:
+			if int(match_on_num) >= int(find_num):
 				match_found = True
 		return match_found
 
