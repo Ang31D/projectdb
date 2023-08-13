@@ -740,6 +740,9 @@ def do_action_attach_db(db_conn, args):
 		if not os.path.isfile(db_file):
 			print("[!] warning: attach database(%s) failed - file not found '%s'" % (db_name, db_file))
 			continue
+		if db_name.lower() == "temp":
+			print("[!] warning: attach database(%s) failed - protected database name '%s'" % (db_name, db_file))
+			continue
 		if not db.attach_db(db_conn, db_name, db_file):
 			print("[!] warning: attach database(%s) failed - '%s'" % (db_name, db_file))
 
