@@ -294,18 +294,26 @@ def get_table_columns(db_conn, table_name):
 		column_list.append(row[1])
 	return column_list
 
-
 def db_schema_from_pragma(db_conn, db_name):
 	schema_list = []
-	pragma_db = ""
+	pragma_condition = ""
+
 	if db_name is not None:
-		pragma_db = " WHERE name = '%s'" % db_name
+		where_param = ""
+		for name in db_name.split(","):
+			if len(where_param) > 0:
+				where_param = "%s OR " % where_param
+			where_param = "%sname = '%s'" % (where_param, name)
+		if len(where_param) > 0:
+			pragma_condition = "\n		WHERE\n			%s" % where_param
+
 	query_param = '''
 		SELECT
 			*
 		FROM
 			PRAGMA_database_list%s
-	''' % pragma_db
+	''' % pragma_condition
+	#print(query_param)
 	
 	param_data = ()
 	rows = execute(db_conn, query_param, param_data, True)
