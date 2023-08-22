@@ -35,8 +35,9 @@ class init(Script):
 			'main' options; used for finding 'stuff'
 		"""
 		help_output += "\n%s" % "  * Options (optional):"
-		help_output += "\n%s" % "    find='<value>'          - value to search for; if omitted, match on any with look-for 'db', 'table' or 'column'"
-		help_output += "\n%s" % "    look-for='<type>'       - what to find; valid types: 'db', 'table', 'column', 'field' (default)"
+		help_output += "\n%s" % "    find='<value>'          - value to search for; if omitted, match on any value"
+		help_output += "\n%s" % "    look-for='<type>'       - what to find; valid types: 'db', 'table', 'column', 'field' (default),"
+		help_output += "\n%s" % "                              db-schema, table-schema, column-schema"
 		help_output += "\n%s" % "    db='<db_name>'          - db to search from or filter on"
 		help_output += "\n%s" % "    table='<table_name>'    - table to search in or filter on"
 		help_output += "\n%s" % "    column='<column_name>'  - column to match field value on or filter on; comma separated list"
@@ -71,12 +72,16 @@ class init(Script):
 		help_output += "\n"
 
 		"""
-			'format' options; controls the output
+			'output' options; controls the output
 		"""
-		help_output += "\n%s" % "    * Output Format"
+		help_output += "\n%s" % "    * Output"
+		help_output += "\n%s" % "      out-column=<column>   - comma separated list of columns to output"
+		help_output += "\n%s" % "      limit=<num>           - limit output to number or rows"
+		help_output += "\n"
 		help_output += "\n%s" % "      format='<option>'     # one option only; available options:"
 		help_output += "\n%s" % "        no-columns          - skip output of columns"
 		help_output += "\n%s" % "        wrap                - as 'no-columns' + wraps output; replace char '\\n' with '\\n\\t'"
+		help_output += "\n%s" % "        csv                 - output in csv format (delimiter ',')"
 		help_output += "\n%s" % "        json                - output in json format"
 		help_output += "\n\n"
 
@@ -85,11 +90,11 @@ class init(Script):
 		help_output += "\n"
 		help_output += "\n%s" % "   Search on multi value match"
 		help_output += "\n%s" % "   %s" % ("-"*len("Search on multiple value match"))
-		help_output += "\n%s" % "   find records in 'hash_map' table that match on either 'gitee' or 'hybrid' in the 'comment' column"
-		help_output += "\n%s" % "   --script-args table=hash_map column=comment find='gitee|hybrid' match=multi"
+		help_output += "\n%s" % "   find records in 'hash_map' table that match on either 'jsonl' or 'virustotal' in the 'comment' column"
+		help_output += "\n%s" % "   --script-args table=hash_map column=comment find='jsonl,virustotal' match=multi-value multi-delim=,"
 		help_output += "\n"
 		help_output += "\n%s" % "   find records in 'hash_map' table that does not match on 'jsonl' and 'virustotal' in the 'comment' column"
-		help_output += "\n%s" % "   --script-args table=hash_map column=comment find='jsonl|virustotal' match=multi,reverse"
+		help_output += "\n%s" % "   --script-args table=hash_map column=comment find='jsonl,virustotal' match=reverse,multi-value, multi-delim=,"
 		return help_output
 	
 	def _on_run(self, args):
@@ -184,13 +189,17 @@ class init(Script):
 		out_format = None
 		if "format" in args:
 			out_format = args["format"]["value"]
+		limit_row_numbers = None
+		if "limit" in args:
+			limit_value = args["limit"]["value"]
+			if limit_value.isnumeric():
+				limit_row_numbers = int(limit_value)
 
 		filter_by_columns = []
 		if filter_on_column is not None:
 			for column_name in filter_on_column.split(","):
 				if column_name.strip() not in filter_by_columns:
 					filter_by_columns.append(column_name.strip())
-		print("\nfilter_by_columns: %s\n" % filter_by_columns)
 		# ----------------------------------------------------------------
 
 		table_list = []
@@ -205,8 +214,6 @@ class init(Script):
 
 			table_columns = db.columns(db_conn, db_name, table_name)
 			table_columns = list(map(lambda n: n[1], table_columns))
-			print("%s: %s" % (table_name, table_columns))
-			# ^-- DEBUG
 
 			query = '''
 				SELECT * FROM %s
@@ -239,6 +246,8 @@ class init(Script):
 					elif reverse_match:
 						table_list.append([db_name, table_name, column_name, column_value])
 
+		if limit_row_numbers is not None:
+			table_list = table_list[:limit_row_numbers]
 		headers = ['db', 'table', 'column', 'value']
 		self._output_table(table_list, headers, out_format)
 
@@ -280,6 +289,11 @@ class init(Script):
 		out_format = None
 		if "format" in args:
 			out_format = args["format"]["value"]
+		limit_row_numbers = None
+		if "limit" in args:
+			limit_value = args["limit"]["value"]
+			if limit_value.isnumeric():
+				limit_row_numbers = int(limit_value)
 		# ----------------------------------------------------------------
 
 		if look_for is None: # this should never happen
@@ -293,7 +307,6 @@ class init(Script):
 			headers = ['seq', 'name', 'file']
 			#rows = db.db_schema_from_pragma(db_conn, locate_db)
 			rows = db.db_schema_from_pragma(db_conn, None)
-			#return
 		elif "table" == look_for:
 			headers = ['schema', 'name', 'type', 'ncol', 'wr', 'strict']
 			#rows = db.table_schema_from_pragma(db_conn, locate_db, locate_table)
@@ -310,6 +323,7 @@ class init(Script):
 			print("[!] error: %s; failed to fetch schema for '%s'" % (self.name, look_for))
 			return
 
+		# filter on db, table, column
 		filter_by_dbs = []
 		if locate_db is not None:
 			filter_by_dbs = locate_db.split(",")
@@ -319,7 +333,7 @@ class init(Script):
 		filter_by_columns = []
 		if locate_column is not None:
 			filter_by_columns = locate_column.split(",")
-
+		# column index pos on db, table, column for filter
 		index_pos_db = -1
 		index_pos_table = -1
 		index_pos_column = -1
@@ -334,8 +348,8 @@ class init(Script):
 			index_pos_column = 3
 
 		table_list = []
-		print(filter_by_columns)
-		print(index_pos_column)
+		#print("filter_by_columns: %s" % filter_by_columns)
+		#print("index_pos_column: %s" % index_pos_column)
 		for row in rows:
 			match_found = False
 
@@ -349,10 +363,11 @@ class init(Script):
 			if len(filter_by_tables) > 0 and index_pos_table >= 0:
 				if row[index_pos_table] not in filter_by_tables:
 					continue
-			if "column" != look_for:
+			if "column" != look_for or find_value is None:
 				if len(filter_by_columns) > 0 and index_pos_column >= 0:
-					print(row[index_pos_column])
+					#print(row[index_pos_column])
 					if row[index_pos_column] not in filter_by_columns:
+						#print("skip - %s" % row)
 						continue
 
 			if find_value is not None:
@@ -374,16 +389,19 @@ class init(Script):
 			else:
 				match_found = True
 
-			if match_found:
-				if reverse_match:
-					match_found = False
-			elif reverse_match:
-				match_found = True
+			if find_value is not None:
+				if match_found:
+					if reverse_match:
+						match_found = False
+				elif reverse_match:
+					match_found = True
 				
 			if match_found:
 				#table_list.append(row_item)
 				table_list.append(row)
 
+		if limit_row_numbers is not None:
+			table_list = table_list[:limit_row_numbers]
 		self._output_table(table_list, headers, out_format)
 	
 	def _locate_db_table_column(self, db_conn, locate_db, locate_table, locate_column, args):
@@ -422,6 +440,11 @@ class init(Script):
 		out_format = None
 		if "format" in args:
 			out_format = args["format"]["value"]
+		limit_row_numbers = None
+		if "limit" in args:
+			limit_value = args["limit"]["value"]
+			if limit_value.isnumeric():
+				limit_row_numbers = int(limit_value)
 		# ----------------------------------------------------------------
 
 		if look_for is None: # this should never happen
@@ -503,6 +526,9 @@ class init(Script):
 			headers = ['db', 'table']
 		elif "column" == look_for:
 			headers = ['db', 'table', 'column']
+
+		if limit_row_numbers is not None:
+			table_list = table_list[:limit_row_numbers]
 		self._output_table(table_list, headers, out_format)
 
 	def _search_db_for_record_in_table(self, db_conn, match_db_name, table_name, find_value, args):
@@ -537,6 +563,11 @@ class init(Script):
 		out_format = None
 		if "format" in args:
 			out_format = args["format"]["value"]
+		limit_row_numbers = None
+		if "limit" in args:
+			limit_value = args["limit"]["value"]
+			if limit_value.isnumeric():
+				limit_row_numbers = int(limit_value)
 		# ----------------------------------------------------------------
 
 		#tables = db.tables(db_conn, match_db_name, table_name)
@@ -621,6 +652,8 @@ class init(Script):
 			elif reverse_match:
 				table_list.append(row_list)
 
+		if limit_row_numbers is not None:
+			table_list = table_list[:limit_row_numbers]
 		self._output_table(table_list, headers, out_format)
 
 	def match_on_condition(self, find_value, match_on_value, match_condition):
@@ -643,16 +676,17 @@ class init(Script):
 		elif "empty" == match_condition:
 			if len(str(match_on_value)) == 0:
 				match_found = True
-		elif match_condition in self._valid_number_conditions():
+		elif self._is_number_conditions(match_condition):
 			if str(match_on_value).isnumeric() and str(find_value).isnumeric():
 				match_found = self._match_on_number_condition(int(find_value), int(match_on_value), match_condition)
 		return match_found
-	def _valid_number_conditions(self):
-		return ["ne", "eq", "lt", "le", "gt", "ge"]
+	def _is_number_conditions(self, condition):
+		num_cond_list = ["ne", "eq", "lt", "le", "gt", "ge"]
+		return condition in num_cond_list
 	def _match_on_number_condition(self, find_num, match_on_num, match_condition):
 		match_found = False
 
-		if match_condition not in self._valid_number_conditions():
+		if not self._is_number_conditions(match_condition):
 			return match_found
 		if not str(find_num).isnumeric() or not str(match_on_num).isnumeric():
 			return match_found
@@ -660,9 +694,9 @@ class init(Script):
 		if "eq" == match_condition:
 			if int(match_on_num) == int(find_num):
 				match_found = True
-		elif "ne" == match_condition:
-			if int(match_on_num) != int(find_num):
-				match_found = True
+		#elif "ne" == match_condition:
+		#	if int(match_on_num) != int(find_num):
+		#		match_found = True
 		elif "lt" == match_condition:
 			if int(match_on_num) < int(find_num):
 				match_found = True
@@ -680,7 +714,7 @@ class init(Script):
 	def _output_table(self, table_list, headers, out_format=None):
 		tablefmt='github'
 		wrap_data = False
-		out_json = False
+		out_json_format = False
 
 		if out_format is not None:
 			if out_format == "no-columns" or out_format == "wrap":
@@ -690,20 +724,45 @@ class init(Script):
 				wrap_data = True
 
 		if "json" == out_format:
-			out_json = True
+			out_json_format = True
 		elif "_internal.args.out_json" in self._extend:
-			out_json = self._extend["_internal.args.out_json"]
-		
-		if out_json:
-			self._output_table_as_json(table_list, headers, out_format)
+			out_json_format = self._extend["_internal.args.out_json"]
+		if out_json_format:
+			self._output_table_as_json(table_list, headers)
+			return
+
+		if out_format == "csv":
+			self._output_table_as_csv(table_list, headers, ",")
 			return
 		
 		out_data = tabulate(table_list, headers=headers, tablefmt=tablefmt)
-
 		if wrap_data:
 			print(out_data.replace("\\n", "\n\t"))
 		else:
 			print(out_data)
+
+	def _output_table_as_csv(self, table_list, headers, delimiter=None):
+		field_delim = ","
+		if delimiter is not None:
+			field_delim = ","
+		if len(field_delim) != 1:
+			print("[!] warning: %s; invalid field delimiter length - '%s'" % (self.name, field_delim))
+
+		table_data = []
+		#headers = list(map(lambda n: '"%s"' % n, headers))
+		table_data.append(field_delim.join(headers))
+		for row in table_list:
+			row_value = ""
+			for field in row:
+				field_value = field
+				if "," in str(field):
+					field_value = '"%s"' % str(field)
+				#field_value = '"%s"' % field
+				if len(row_value) > 0:
+					row_value += field_delim
+				row_value += str(field_value)
+			table_data.append(row_value)
+		print('\n'.join(table_data))
 
 	def _output_table_as_json(self, table_list, headers, out_format=None):
 		out_json = []
@@ -712,8 +771,6 @@ class init(Script):
 			for i in range(len(headers)):
 				key_name = headers[i]
 				key_value = row[i]
-				#print("%s: '%s'" % (key_name, key_value))
 				json_item[key_name] = key_value
 			out_json.append(json_item)
-		#print(out_json)
 		print(json.dumps(out_json))
