@@ -17,6 +17,8 @@ def root_dir():
 	return os.path.join(root_dir, "scripts")
 def get_script_dir_from_script_file(script_path):
 	path = os.path.dirname(os.path.realpath(script_path))
+	if not path.endswith("/"):
+		path += "/"
 	if "/scripts/" not in path:
 		return None
 	script_dir = path[: path.rindex("/scripts/")+len("/scripts/")]
