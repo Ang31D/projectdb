@@ -804,6 +804,9 @@ def do_db_import(db_conn, args):
 		print("[!] error: import database - missing table")
 		print("[!] (use '-T <table_name>)")
 		return
+	if not db.table_exists(db_conn, args.table_name):
+		print("[!] error: import database - table does not exist - '%s'" % args.table_name)
+		return
 	if not os.path.isfile(in_file):
 		print("[!] warning: import database - file not found '%s'" % in_file)
 		print("[!] (use '--import <file>)")
