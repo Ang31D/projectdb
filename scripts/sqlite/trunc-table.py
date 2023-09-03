@@ -24,7 +24,7 @@ class init(Script):
 		help_output += "\n    table='<table_name>'  - the table to truncate"
 		help_output += "\n"
 		help_output += "\n    db-name='<db_name>'   - (optional) overrides default (\"main\") db which the table exists in"
-		help_output += "\n    mode='dry'            - (optional) do not commit to database"
+		help_output += "\n    dry-mode              - (optional) do not commit to database"
 		return help_output
 
 	def _on_run(self, args):
@@ -55,9 +55,7 @@ class init(Script):
 		if 'db-name' in args:
 			db_name = args['db-name']['value']
 
-		dry_mode = False
-		if 'mode' in args and "dry" == args['mode']['value']:
-			dry_mode = True
+		dry_mode = 'dry-mode' in args
 
 		#db_file = args['db']['value']
 		#db_conn = self._connect_db(db_file)

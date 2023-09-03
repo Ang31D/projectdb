@@ -26,7 +26,7 @@ class init(Script):
 		help_output += "\n    match-on='<value>'      - value to match on"
 		help_output += "\n"
 		help_output += "\n    db-name='<db_name>'     - overrides default (\"main\") db which the table exists in"
-		help_output += "\n    options='dry-mode'      - (optional) do not commit to database, good for verification"
+		help_output += "\n    dry-mode                - (optional) do not commit to database, good for verification"
 		return help_output
 
 	def _on_run(self, args):
@@ -44,9 +44,7 @@ class init(Script):
 			print("[!] error: %s; missing required 'match-on' option" % self.name)
 			return
 
-		dry_mode = False
-		if "options" in args and "dry-mode" in args["options"]["value"].split(","):
-			dry_mode = True
+		dry_mode = "dry-mode" in args
 
 		rows = self._select_record(args)
 		if rows is None:
